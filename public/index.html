@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iOS Monitor & Verification System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="background-effects">
+    <div class="glow-orb orb-purple"></div>
+    <div class="glow-orb orb-indigo"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- VIEW TOGGLE (Mainly for testing/debugging) -->
+    <div class="view-switcher-bar">
+      <span class="mode-tag" id="detected-os-tag">Detected: Detecting OS...</span>
+      <button id="btn-toggle-view" class="btn-text">Switch View (Admin / Client)</button>
+    </div>
+
+    <!-- ==================== ADMIN VIEW ==================== -->
+    <main id="admin-view" class="view-panel hidden">
+      <header class="dashboard-header">
+        <div class="logo">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="logo-icon">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+          <h1>iOS Device Central</h1>
+        </div>
+        <p class="subtitle">Monthly verification logs & network detection dashboard</p>
+      </header>
+
+      <!-- STATS OVERVIEW -->
+      <section class="stats-grid">
+        <div class="stat-card glass-card">
+          <span class="stat-title">Total iOS Devices</span>
+          <span id="stat-total-devices" class="stat-value">0</span>
+        </div>
+        <div class="stat-card glass-card">
+          <span class="stat-title">Verification Pending</span>
+          <span id="stat-pending-devices" class="stat-value warning-text">0</span>
+        </div>
+        <div class="stat-card glass-card">
+          <span class="stat-title">Overdue Devices</span>
+          <span id="stat-overdue-devices" class="stat-value danger-text">0</span>
+        </div>
+      </section>
+
+      <!-- DEVICE LISTING -->
+      <section class="glass-card main-card">
+        <div class="card-header">
+          <h2>Monitored Devices</h2>
+          <button id="btn-show-add-device" class="btn btn-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Device
+          </button>
+        </div>
+
+        <!-- ADD DEVICE DRAWER -->
+        <div id="add-device-drawer" class="drawer hidden">
+          <div class="form-row">
+            <div class="input-field">
+              <label for="new-device-name">Device Nickname</label>
+              <input type="text" id="new-device-name" placeholder="e.g. Boss's iPhone 15">
+            </div>
+            <div class="input-field select-field">
+              <label for="new-device-type">Device Type</label>
+              <select id="new-device-type">
+                <option value="ios">iOS Device (iPhone/iPad)</option>
+                <option value="other">Other Device</option>
+              </select>
+            </div>
+            <button id="btn-submit-device" class="btn btn-primary">Save Device</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="devices-table">
+            <thead>
+              <tr>
+                <th>Nickname</th>
+                <th>Last Checked</th>
+                <th>Next Due</th>
+                <th>Status</th>
+                <th>Verification Link</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="devices-list-tbody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+          <div id="empty-devices-msg" class="empty-state hidden">
+            <p>No devices currently monitored. Register a new device above to generate a verification link.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SYSTEM LOGS -->
+      <section class="glass-card logs-card">
+        <h2>Activity Audit Log</h2>
+        <div class="logs-container">
+          <ul id="system-logs-list" class="logs-list">
+            <!-- Rendered via JS -->
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <!-- ==================== CLIENT (iOS) VIEW ==================== -->
+    <main id="client-view" class="view-panel hidden">
+      <!-- Back button visible only on desktop testing -->
+      <div id="desktop-back-to-admin" class="back-bar hidden" style="text-align: left; max-width: 460px; margin: 0 auto 1rem auto; padding: 0 0.5rem;">
+        <button id="btn-back-to-admin" class="btn-text" style="font-size: 0.9rem;">← Back to Admin Dashboard</button>
+      </div>
+
+      <div class="client-card glass-card">
+        <header class="client-header">
+          <span class="badge-ios">iOS CLIENT PORTAL</span>
+          <h1 id="client-device-header">Detecting iOS Device...</h1>
+          <p class="subtitle">Monthly verification check-in</p>
+        </header>
+
+        <!-- DEVICE LINK ERROR PANEL -->
+        <section id="client-registration-section" class="client-sub-panel hidden">
+          <div class="instruction-box" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; margin-bottom: 0; text-align: left;">
+            <p><strong>Verification Link Required</strong><br><br>Please use the unique verification link sent by the Administrator to confirm this device's presence.<br><br>If you are the Admin, register this device on the Admin Dashboard first, then copy and send the generated link.</p>
+          </div>
+        </section>
+
+        <!-- DEVICE VERIFICATION (IF REGISTERED) -->
+        <section id="client-verification-section" class="client-sub-panel hidden">
+          <div class="verify-orb-container">
+            <button id="btn-verify-presence" class="verify-orb-btn ripple">
+              <span class="orb-content">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="orb-icon">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                Press to Active
+              </span>
+            </button>
+          </div>
+
+          <div class="client-status-box">
+            <div class="status-row">
+              <span>Status:</span>
+              <span id="client-status-badge" class="badge">Checking...</span>
+            </div>
+            <div class="status-row">
+              <span>Last Confirmed:</span>
+              <strong id="client-last-verified-val">-</strong>
+            </div>
+            <div class="status-row">
+              <span>Next Check Due:</span>
+              <strong id="client-next-due-val">-</strong>
+            </div>
+          </div>
+        </section>
+
+        <!-- REGISTERED DEVICES ON LOCAL NETWORK (Quick Switch for testing client mode) -->
+        <div id="client-device-selector-panel" class="device-selector-row hidden">
+          <label for="client-device-select">Testing as:</label>
+          <select id="client-device-select">
+            <!-- Rendered via JS -->
+          </select>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Notification Popup -->
+  <div id="toast-notification" class="toast hidden"></div>
+
+  <!-- Client JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>

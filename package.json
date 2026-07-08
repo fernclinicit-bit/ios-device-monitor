@@ -1,0 +1,12 @@
+{
+  "name": "auto-shutdown",
+  "version": "1.0.0",
+  "description": "Premium Auto Shutdown Local Web Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
