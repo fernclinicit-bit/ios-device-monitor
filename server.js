@@ -111,6 +111,10 @@ const mimeTypes = {
 };
 
 const server = http.createServer((req, res) => {
+  // Strip query string for robust routing and file serving
+  const qPos = req.url.indexOf('?');
+  const pathname = qPos !== -1 ? req.url.substring(0, qPos) : req.url;
+
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -125,7 +129,7 @@ const server = http.createServer((req, res) => {
   // --- API Routes ---
 
   // GET /api/devices - Get all devices and status
-  if (req.method === 'GET' && req.url === '/api/devices') {
+  if (req.method === 'GET' && pathname === '/api/devices') {
     const db = readDb();
     
     // Dynamically calculate current status for each device
@@ -149,7 +153,7 @@ const server = http.createServer((req, res) => {
   }
 
   // POST /api/register - Register a new device
-  if (req.method === 'POST' && req.url === '/api/register') {
+  if (req.method === 'POST' && pathname === '/api/register') {
     let body = '';
     req.on('data', chunk => { body += chunk.toString(); });
     req.on('end', () => {
@@ -194,7 +198,7 @@ const server = http.createServer((req, res) => {
   }
 
   // POST /api/verify - Verify device presence
-  if (req.method === 'POST' && req.url === '/api/verify') {
+  if (req.method === 'POST' && pathname === '/api/verify') {
     let body = '';
     req.on('data', chunk => { body += chunk.toString(); });
     req.on('end', () => {
@@ -235,7 +239,7 @@ const server = http.createServer((req, res) => {
   }
 
   // POST /api/delete-device - Remove device
-  if (req.method === 'POST' && req.url === '/api/delete-device') {
+  if (req.method === 'POST' && pathname === '/api/delete-device') {
     let body = '';
     req.on('data', chunk => { body += chunk.toString(); });
     req.on('end', () => {
@@ -274,7 +278,7 @@ const server = http.createServer((req, res) => {
   }
 
   // --- Static File Server ---
-  let reqUrl = req.url === '/' ? '/index.html' : req.url;
+  let reqUrl = pathname === '/' ? '/index.html' : pathname;
   // Prevent directory traversal attacks
   const safeSuffix = path.normalize(reqUrl).replace(/^(\.\.[\/\\])+/, '');
   const filePath = path.join(PUBLIC_DIR, safeSuffix);
