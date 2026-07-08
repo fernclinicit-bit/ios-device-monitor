@@ -13,7 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const statOverdueDevices = document.getElementById('stat-overdue-devices');
   const btnShowAddDevice = document.getElementById('btn-show-add-device');
   const addDeviceDrawer = document.getElementById('add-device-drawer');
-  const newDeviceName = document.getElementById('new-device-name');
+  const newUserInfo = document.getElementById('new-user-name');
+  const newPosition = document.getElementById('new-position');
+  const newDeviceNumber = document.getElementById('new-device-number');
+  const newAccessories = document.getElementById('new-accessories');
   const newDeviceType = document.getElementById('new-device-type');
   const btnSubmitDevice = document.getElementById('btn-submit-device');
   const devicesListTbody = document.getElementById('devices-list-tbody');
@@ -26,6 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const clientVerificationSection = document.getElementById('client-verification-section');
   const btnVerifyPresence = document.getElementById('btn-verify-presence');
   const clientStatusBadge = document.getElementById('client-status-badge');
+  const clientPositionVal = document.getElementById('client-position-val');
+  const clientDeviceNumberVal = document.getElementById('client-device-number-val');
+  const clientAccessoriesVal = document.getElementById('client-accessories-val');
   const clientLastVerifiedVal = document.getElementById('client-last-verified-val');
   const clientNextDueVal = document.getElementById('client-next-due-val');
   const clientDeviceSelectorPanel = document.getElementById('client-device-selector-panel');
@@ -171,10 +177,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
         tr.innerHTML = `
           <td>
-            <strong>${escapeHtml(d.name)}</strong>
-            <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">
+            <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">${escapeHtml(d.userName || d.name)}</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">
+              💼 Position: ${escapeHtml(d.position || '-')}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">
+              🔢 S/N: ${escapeHtml(d.deviceNumber || '-')} | 🔌 Acc: ${escapeHtml(d.accessories || '-')}
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem;">
               ${d.isIOS ? '📱 iOS Device' : '💻 Other'}
-            </span>
+            </div>
           </td>
           <td>${lastVerifiedFormatted}</td>
           <td>
@@ -267,7 +279,10 @@ document.addEventListener('DOMContentLoaded', () => {
       clientRegistrationSection.classList.add('hidden');
       clientVerificationSection.classList.remove('hidden');
       
-      clientDeviceHeader.textContent = currentDevice.name;
+      clientDeviceHeader.textContent = currentDevice.userName || currentDevice.name;
+      clientPositionVal.textContent = currentDevice.position || '-';
+      clientDeviceNumberVal.textContent = currentDevice.deviceNumber || '-';
+      clientAccessoriesVal.textContent = currentDevice.accessories || '-';
       clientLastVerifiedVal.textContent = currentDevice.lastVerifiedAt ? new Date(currentDevice.lastVerifiedAt).toLocaleString() : 'Never';
       clientNextDueVal.textContent = currentDevice.nextDueAt ? new Date(currentDevice.nextDueAt).toLocaleDateString() : 'Pending Active';
       
@@ -422,10 +437,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Submit device from Admin drawer
   btnSubmitDevice.addEventListener('click', async () => {
-    const name = newDeviceName.value.trim();
+    const name = newUserInfo.value.trim();
+    const position = newPosition.value.trim();
+    const deviceNumber = newDeviceNumber.value.trim();
+    const accessories = newAccessories.value.trim();
     const type = newDeviceType.value;
+    
     if (!name) {
-      alert('Please enter a name for the device');
+      alert('โปรดกรอกข้อมูลผู้ใช้งาน');
       return;
     }
 
@@ -435,6 +454,9 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name,
+          position: position,
+          deviceNumber: deviceNumber,
+          accessories: accessories,
           isIOS: type === 'ios',
           userAgent: type === 'ios' ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)' : navigator.userAgent
         })
@@ -442,7 +464,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       if (response.ok) {
         showToast('Device added successfully!');
-        newDeviceName.value = '';
+        // Clear all inputs
+        newUserInfo.value = '';
+        newPosition.value = '';
+        newDeviceNumber.value = '';
+        newAccessories.value = '';
         addDeviceDrawer.classList.add('hidden');
         loadData();
       } else {

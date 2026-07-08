@@ -159,7 +159,7 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
-        const { name, userAgent, isIOS } = data;
+        const { name, position, deviceNumber, accessories, userAgent, isIOS } = data;
 
         if (!name || name.trim() === '') {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -174,6 +174,10 @@ const server = http.createServer((req, res) => {
         const newDevice = {
           id: deviceId,
           name: name.trim(),
+          userName: name.trim(),
+          position: (position || '').trim(),
+          deviceNumber: (deviceNumber || '').trim(),
+          accessories: (accessories || '').trim(),
           userAgent: userAgent || req.headers['user-agent'] || 'Unknown',
           ip: clientIp,
           isIOS: !!isIOS,

@@ -66,19 +66,33 @@
 
         <!-- ADD DEVICE DRAWER -->
         <div id="add-device-drawer" class="drawer hidden">
-          <div class="form-row">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
             <div class="input-field">
-              <label for="new-device-name">Device Nickname</label>
-              <input type="text" id="new-device-name" placeholder="e.g. Boss's iPhone 15">
+              <label for="new-user-name">ข้อมูลผู้ใช้งาน (User Info)</label>
+              <input type="text" id="new-user-name" placeholder="ชื่อผู้ใช้งาน">
             </div>
-            <div class="input-field select-field">
-              <label for="new-device-type">Device Type</label>
+            <div class="input-field">
+              <label for="new-position">ตำแหน่ง (Position)</label>
+              <input type="text" id="new-position" placeholder="เช่น Manager, Staff">
+            </div>
+            <div class="input-field">
+              <label for="new-device-number">หมายเลขอุปกรณ์ (Device S/N)</label>
+              <input type="text" id="new-device-number" placeholder="เช่น Serial Number, Asset ID">
+            </div>
+            <div class="input-field">
+              <label for="new-accessories">อุปกรณ์เสริม (Accessories)</label>
+              <input type="text" id="new-accessories" placeholder="เช่น สายชาร์จ, หูฟัง, เคส">
+            </div>
+          </div>
+          <div style="display: flex; gap: 1rem; align-items: flex-end;">
+            <div class="input-field select-field" style="flex: 1;">
+              <label for="new-device-type">ประเภทอุปกรณ์ (Device Type)</label>
               <select id="new-device-type">
                 <option value="ios">iOS Device (iPhone/iPad)</option>
                 <option value="other">Other Device</option>
               </select>
             </div>
-            <button id="btn-submit-device" class="btn btn-primary">Save Device</button>
+            <button id="btn-submit-device" class="btn btn-primary" style="height: 42px;">Save Device</button>
           </div>
         </div>
 
@@ -156,11 +170,23 @@
               <span id="client-status-badge" class="badge">Checking...</span>
             </div>
             <div class="status-row">
-              <span>Last Confirmed:</span>
+              <span>ตำแหน่ง (Position):</span>
+              <strong id="client-position-val">-</strong>
+            </div>
+            <div class="status-row">
+              <span>หมายเลขอุปกรณ์ (S/N):</span>
+              <strong id="client-device-number-val">-</strong>
+            </div>
+            <div class="status-row">
+              <span>อุปกรณ์เสริม (Acc):</span>
+              <strong id="client-accessories-val">-</strong>
+            </div>
+            <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.5rem; margin-top: 0.3rem;">
+              <span>ยืนยันล่าสุด (Last Confirmed):</span>
               <strong id="client-last-verified-val">-</strong>
             </div>
             <div class="status-row">
-              <span>Next Check Due:</span>
+              <span>รอบถัดไป (Next Due):</span>
               <strong id="client-next-due-val">-</strong>
             </div>
           </div>
