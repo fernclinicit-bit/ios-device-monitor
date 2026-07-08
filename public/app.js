@@ -162,7 +162,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const lastVerifiedFormatted = d.lastVerifiedAt ? new Date(d.lastVerifiedAt).toLocaleString() : 'Never';
         const nextDueFormatted = d.nextDueAt ? new Date(d.nextDueAt).toLocaleDateString() : 'Pending Active';
         const daysRemainingText = d.status === 'unverified' ? 'Waiting check-in' : d.daysRemaining > 0 ? `${d.daysRemaining} days left` : 'Expired';
-        const verifyUrl = 'http://' + serverIpAddress + ':3000/?id=' + d.id;
+        let verifyUrl = '';
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          verifyUrl = 'http://' + serverIpAddress + ':3000/?id=' + d.id;
+        } else {
+          verifyUrl = window.location.origin + '/?id=' + d.id;
+        }
         
         tr.innerHTML = `
           <td>
