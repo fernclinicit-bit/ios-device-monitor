@@ -2,34 +2,142 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const https = require('https');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DB_FILE = path.join(__dirname, 'data', 'db.json');
 
-// Helper to read database
+// Memory Cache to prevent API exhaustion and provide 0ms reads
+let dbInMemory = { devices: [], logs: [] };
+
+// JSONBin cloud storage config
+const JSONBIN_API_KEY = process.env.JSONBIN_API_KEY;
+const JSONBIN_BIN_ID = process.env.JSONBIN_BIN_ID;
+
+// Helper to read database from memory cache
 function readDb() {
+  return dbInMemory;
+}
+
+// Helper to write database to memory cache and persist it (Cloud or Local File)
+function writeDb(data) {
+  dbInMemory = data;
+  if (JSONBIN_API_KEY && JSONBIN_BIN_ID) {
+    saveToJsonBin(data)
+      .then(() => console.log('Successfully synced database to JSONBin cloud!'))
+      .catch((err) => console.error('Failed to sync to JSONBin cloud:', err.message));
+  } else {
+    try {
+      fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
+      fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+    } catch (err) {
+      console.error('Error writing local database:', err);
+    }
+  }
+}
+
+// JSONBin.io integration helpers
+function fetchFromJsonBin() {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.jsonbin.io',
+      port: 443,
+      path: `/v3/b/${JSONBIN_BIN_ID}/latest`,
+      method: 'GET',
+      headers: {
+        'X-Master-Key': JSONBIN_API_KEY,
+        'X-Bin-Meta': 'false'
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          try {
+            resolve(JSON.parse(body));
+          } catch (e) {
+            reject(new Error('Failed to parse JSONBin payload'));
+          }
+        } else {
+          reject(new Error(`JSONBin error status: ${res.statusCode}`));
+        }
+      });
+    });
+
+    req.on('error', (e) => reject(e));
+    req.end();
+  });
+}
+
+function saveToJsonBin(data) {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify(data);
+    const options = {
+      hostname: 'api.jsonbin.io',
+      port: 443,
+      path: `/v3/b/${JSONBIN_BIN_ID}`,
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_API_KEY
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          resolve();
+        } else {
+          reject(new Error(`JSONBin save error: ${res.statusCode}`));
+        }
+      });
+    });
+
+    req.on('error', (e) => reject(e));
+    req.write(payload);
+    req.end();
+  });
+}
+
+// Initialize database
+function initDb(callback) {
+  if (JSONBIN_API_KEY && JSONBIN_BIN_ID) {
+    console.log('Detected JSONBin config. Fetching database from cloud...');
+    fetchFromJsonBin()
+      .then((data) => {
+        dbInMemory = data || { devices: [], logs: [] };
+        console.log('Database successfully loaded from JSONBin cloud!');
+        callback();
+      })
+      .catch((err) => {
+        console.error('Failed to load database from JSONBin cloud, falling back to local file:', err.message);
+        loadLocalDb();
+        callback();
+      });
+  } else {
+    console.log('Using local file system database.');
+    loadLocalDb();
+    callback();
+  }
+}
+
+function loadLocalDb() {
   try {
     if (!fs.existsSync(DB_FILE)) {
-      // Ensure folder and file exist
       fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
       fs.writeFileSync(DB_FILE, JSON.stringify({ devices: [], logs: [] }, null, 2));
     }
     const data = fs.readFileSync(DB_FILE, 'utf8');
-    return JSON.parse(data);
+    dbInMemory = JSON.parse(data);
+    console.log('Database successfully loaded from local file.');
   } catch (err) {
-    console.error('Error reading database:', err);
-    return { devices: [], logs: [] };
-  }
-}
-
-// Helper to write database
-function writeDb(data) {
-  try {
-    fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-  } catch (err) {
-    console.error('Error writing database:', err);
+    console.error('Error reading local database:', err);
+    dbInMemory = { devices: [], logs: [] };
   }
 }
 
@@ -312,9 +420,11 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`==================================================`);
-  console.log(`📱 iOS Device Monitor server is running locally!`);
-  console.log(`🔗 Access Portal: http://localhost:${PORT}`);
-  console.log(`==================================================`);
+initDb(() => {
+  server.listen(PORT, () => {
+    console.log(`==================================================`);
+    console.log(`📱 iOS Device Monitor server is running locally!`);
+    console.log(`🔗 Access Portal: http://localhost:${PORT}`);
+    console.log(`==================================================`);
+  });
 });
