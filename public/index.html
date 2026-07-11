@@ -10,6 +10,8 @@
   <!-- Leaflet Map Integration -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- HTML2PDF Reporting Integration -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -68,11 +70,11 @@
         </div>
 
         <!-- SEARCH & FILTER BAR -->
-        <div class="search-filter-bar" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-          <div style="flex: 2; min-width: 250px; position: relative;">
+        <div class="search-filter-bar" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center;">
+          <div style="flex: 3; min-width: 250px; position: relative;">
             <input type="text" id="search-input" placeholder="🔍 ค้นหาตามชื่อผู้ใช้, ตำแหน่ง, S/N, อุปกรณ์เสริม หรือที่อยู่..." style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.25); color: #fff; outline: none; font-family: 'Plus Jakarta Sans', sans-serif;">
           </div>
-          <div style="flex: 1; min-width: 150px;">
+          <div style="flex: 1.5; min-width: 150px;">
             <select id="status-filter" style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(18, 18, 29, 0.95); color: #fff; outline: none; font-family: 'Plus Jakarta Sans', sans-serif; cursor: pointer;">
               <option value="all">สถานะทั้งหมด (All Status)</option>
               <option value="active">Active (ยืนยันแล้ว)</option>
@@ -80,6 +82,11 @@
               <option value="unverified">Unverified (ยังไม่ยืนยัน)</option>
               <option value="overdue">Overdue Check (หมดอายุ)</option>
             </select>
+          </div>
+          <div style="flex: 0.8; min-width: 130px;">
+            <button id="btn-export-pdf" class="btn btn-secondary" style="width: 100%; height: 42px; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: var(--accent-purple); color: #fff; border-color: var(--accent-purple); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500;">
+              📊 Export PDF
+            </button>
           </div>
         </div>
 

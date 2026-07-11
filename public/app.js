@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const systemLogsList = document.getElementById('system-logs-list');
   const searchInput = document.getElementById('search-input');
   const statusFilter = document.getElementById('status-filter');
+  const btnExportPdf = document.getElementById('btn-export-pdf');
   
   // Client DOM
   const clientDeviceHeader = document.getElementById('client-device-header');
@@ -45,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- App State ---
   let devices = [];
   let logs = [];
+  let currentFilteredDevices = [];
   let serverIpAddress = 'localhost';
   let currentActiveView = 'admin'; // 'admin' or 'client'
   let mapInstance = null;
@@ -303,6 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (statusVal !== 'all') {
       filteredDevices = filteredDevices.filter(d => d.status === statusVal);
     }
+
+    currentFilteredDevices = filteredDevices;
 
     // Devices Table
     devicesListTbody.innerHTML = '';
@@ -697,6 +701,154 @@ document.addEventListener('DOMContentLoaded', () => {
     statusFilter.addEventListener('change', () => {
       updateAdminDashboard();
     });
+  }
+
+  // PDF Report Export function using html2pdf.js
+  function exportToPdf() {
+    if (!currentFilteredDevices || currentFilteredDevices.length === 0) {
+      showToast('ไม่มีข้อมูลสำหรับส่งออก PDF');
+      return;
+    }
+
+    // Create a temporary container for PDF styling
+    const element = document.createElement('div');
+    element.className = 'pdf-report';
+    
+    const now = new Date().toLocaleString();
+    const statusVal = statusFilter ? statusFilter.options[statusFilter.selectedIndex].text : 'ทั้งหมด';
+    const searchVal = searchInput ? searchInput.value.trim() : '';
+    
+    // Construct HTML content
+    let tableRows = '';
+    currentFilteredDevices.forEach((d, idx) => {
+      let statusText = 'Unverified';
+      let statusColor = '#4b5563'; // Gray
+      if (d.status === 'active') {
+        statusText = 'Active';
+        statusColor = '#047857'; // Green
+      } else if (d.status === 'pending') {
+        statusText = 'Pending Verify';
+        statusColor = '#b45309'; // Orange
+      } else if (d.status === 'overdue') {
+        statusText = 'Overdue Check';
+        statusColor = '#b91c1c'; // Red
+      }
+
+      const lastChecked = d.lastVerifiedAt ? new Date(d.lastVerifiedAt).toLocaleString() : 'Never';
+      const nextDue = d.nextDueAt ? new Date(d.nextDueAt).toLocaleDateString() : 'Pending Active';
+
+      tableRows += `
+        <tr>
+          <td style="text-align: center;">${idx + 1}</td>
+          <td>
+            <strong style="color: #111827; font-size: 11px;">${escapeHtml(d.userName || d.name)}</strong>
+          </td>
+          <td>${escapeHtml(d.position || '-')}</td>
+          <td>${escapeHtml(d.deviceNumber || '-')}</td>
+          <td>${escapeHtml(d.accessories || '-')}</td>
+          <td><strong style="color: ${statusColor};">${statusText}</strong></td>
+          <td>${lastChecked}</td>
+          <td>${escapeHtml(d.address || '-')}</td>
+        </tr>
+      `;
+    });
+
+    element.innerHTML = `
+      <style>
+        .pdf-report {
+          font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+          color: #1f2937;
+          padding: 15px;
+          background: #fff;
+        }
+        .pdf-header {
+          border-bottom: 2px solid #e5e7eb;
+          padding-bottom: 12px;
+          margin-bottom: 15px;
+        }
+        .pdf-title {
+          font-size: 20px;
+          font-weight: 800;
+          color: #111827;
+          margin: 0 0 6px 0;
+        }
+        .pdf-meta-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          font-size: 10px;
+          color: #4b5563;
+        }
+        .pdf-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 9.5px;
+          margin-top: 10px;
+        }
+        .pdf-table th {
+          background-color: #f3f4f6;
+          color: #111827;
+          font-weight: 700;
+          text-align: left;
+          padding: 8px;
+          border: 1px solid #e5e7eb;
+        }
+        .pdf-table td {
+          padding: 8px;
+          border: 1px solid #e5e7eb;
+          color: #374151;
+          vertical-align: top;
+        }
+        .pdf-table tr:nth-child(even) {
+          background-color: #f9fafb;
+        }
+      </style>
+      <div class="pdf-header">
+        <h1 class="pdf-title">📋 รายงานสถานะเครื่องปลายทาง (iOS Device Status Report)</h1>
+        <div class="pdf-meta-grid">
+          <div>
+            <strong>วันที่ออกรายงาน:</strong> ${now}<br>
+            <strong>ฟิลเตอร์สถานะ:</strong> ${statusVal}
+          </div>
+          <div style="text-align: right;">
+            <strong>คำค้นหา:</strong> ${searchVal ? `"${searchVal}"` : 'ทั้งหมด'}<br>
+            <strong>รวมทั้งหมด:</strong> ${currentFilteredDevices.length} รายการ
+          </div>
+        </div>
+      </div>
+      <table class="pdf-table">
+        <thead>
+          <tr>
+            <th style="width: 4%; text-align: center;">ลำดับ</th>
+            <th style="width: 15%;">ชื่อผู้ใช้งาน (User Name)</th>
+            <th style="width: 10%;">ตำแหน่ง (Position)</th>
+            <th style="width: 12%;">หมายเลขเครื่อง (S/N)</th>
+            <th style="width: 15%;">อุปกรณ์เสริม (Accessories)</th>
+            <th style="width: 11%;">สถานะ (Status)</th>
+            <th style="width: 14%;">เช็คอินล่าสุด (Last Check)</th>
+            <th style="width: 19%;">ที่อยู่ล่าสุด (Address)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    `;
+
+    const opt = {
+      margin:       [0.4, 0.4, 0.4, 0.4],
+      filename:     `Device_Monitor_Report_${new Date().toISOString().slice(0,10)}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    showToast('กำลังสร้างไฟล์ PDF... กรุณารอสักครู่');
+    html2pdf().set(opt).from(element).save();
+  }
+
+  // Bind Export PDF Click Listener
+  if (btnExportPdf) {
+    btnExportPdf.addEventListener('click', exportToPdf);
   }
 
   // Load data immediately on page load
