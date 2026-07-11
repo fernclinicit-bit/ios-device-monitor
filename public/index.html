@@ -67,6 +67,22 @@
           </button>
         </div>
 
+        <!-- SEARCH & FILTER BAR -->
+        <div class="search-filter-bar" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+          <div style="flex: 2; min-width: 250px; position: relative;">
+            <input type="text" id="search-input" placeholder="🔍 ค้นหาตามชื่อผู้ใช้, ตำแหน่ง, S/N, อุปกรณ์เสริม หรือที่อยู่..." style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.25); color: #fff; outline: none; font-family: 'Plus Jakarta Sans', sans-serif;">
+          </div>
+          <div style="flex: 1; min-width: 150px;">
+            <select id="status-filter" style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(18, 18, 29, 0.95); color: #fff; outline: none; font-family: 'Plus Jakarta Sans', sans-serif; cursor: pointer;">
+              <option value="all">สถานะทั้งหมด (All Status)</option>
+              <option value="active">Active (ยืนยันแล้ว)</option>
+              <option value="pending">Pending Verify (รอยืนยัน)</option>
+              <option value="unverified">Unverified (ยังไม่ยืนยัน)</option>
+              <option value="overdue">Overdue Check (หมดอายุ)</option>
+            </select>
+          </div>
+        </div>
+
         <!-- ADD DEVICE DRAWER -->
         <div id="add-device-drawer" class="drawer hidden">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">

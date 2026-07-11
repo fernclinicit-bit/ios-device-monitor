@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const devicesListTbody = document.getElementById('devices-list-tbody');
   const emptyDevicesMsg = document.getElementById('empty-devices-msg');
   const systemLogsList = document.getElementById('system-logs-list');
+  const searchInput = document.getElementById('search-input');
+  const statusFilter = document.getElementById('status-filter');
   
   // Client DOM
   const clientDeviceHeader = document.getElementById('client-device-header');
@@ -169,14 +171,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
   }
 
-  function updateAdminMap() {
+  function updateAdminMap(filteredDevicesList) {
     initAdminMap();
     if (!mapInstance) return;
 
     // Track active marker coordinates to fit bounds
     const coordinates = [];
+    const activeList = filteredDevicesList || devices;
 
-    devices.forEach(d => {
+    activeList.forEach(d => {
       const hasGps = d.latitude !== undefined && d.latitude !== null && d.longitude !== undefined && d.longitude !== null;
       if (hasGps) {
         const latLng = [d.latitude, d.longitude];
@@ -232,8 +235,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Remove markers of deleted devices
-    const currentDeviceIds = devices.map(d => d.id);
+    // Remove markers of deleted or filtered out devices
+    const currentDeviceIds = activeList.map(d => d.id);
     Object.keys(mapMarkers).forEach(id => {
       if (!currentDeviceIds.includes(id)) {
         mapInstance.removeLayer(mapMarkers[id]);
@@ -278,13 +281,36 @@ document.addEventListener('DOMContentLoaded', () => {
     statPendingDevices.textContent = pending;
     statOverdueDevices.textContent = overdue;
 
+    // Filter devices based on Search Query and Status
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const statusVal = statusFilter ? statusFilter.value : 'all';
+
+    let filteredDevices = devices;
+
+    // Apply Search Filter
+    if (query !== '') {
+      filteredDevices = filteredDevices.filter(d => {
+        const nameMatch = (d.userName || d.name || '').toLowerCase().includes(query);
+        const positionMatch = (d.position || '').toLowerCase().includes(query);
+        const snMatch = (d.deviceNumber || '').toLowerCase().includes(query);
+        const accMatch = (d.accessories || '').toLowerCase().includes(query);
+        const addrMatch = (d.address || '').toLowerCase().includes(query);
+        return nameMatch || positionMatch || snMatch || accMatch || addrMatch;
+      });
+    }
+
+    // Apply Status Filter
+    if (statusVal !== 'all') {
+      filteredDevices = filteredDevices.filter(d => d.status === statusVal);
+    }
+
     // Devices Table
     devicesListTbody.innerHTML = '';
-    if (devices.length === 0) {
+    if (filteredDevices.length === 0) {
       emptyDevicesMsg.classList.remove('hidden');
     } else {
       emptyDevicesMsg.classList.add('hidden');
-      devices.forEach(d => {
+      filteredDevices.forEach(d => {
         const tr = document.createElement('tr');
         
         // Status Badge Style
@@ -408,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Update map view with current device markers
-    updateAdminMap();
+    updateAdminMap(filteredDevices);
   }
 
   // --- Client View Logic ---
@@ -659,6 +685,18 @@ document.addEventListener('DOMContentLoaded', () => {
               .replace(/>/g, '&gt;')
               .replace(/"/g, '&quot;')
               .replace(/'/g, '&#039;');
+  }
+
+  // Search & Filter input event listeners
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      updateAdminDashboard();
+    });
+  }
+  if (statusFilter) {
+    statusFilter.addEventListener('change', () => {
+      updateAdminDashboard();
+    });
   }
 
   // Load data immediately on page load
