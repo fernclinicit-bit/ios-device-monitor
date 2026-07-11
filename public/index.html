@@ -7,6 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Leaflet Map Integration -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -94,6 +97,19 @@
             </div>
             <button id="btn-submit-device" class="btn btn-primary" style="height: 42px;">Save Device</button>
           </div>
+        </div>
+
+        <!-- MAP TRACKING CARD -->
+        <div class="glass-card" style="margin-bottom: 1.5rem; padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 600; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+              <span>📍</span> แผนที่ติดตามอุปกรณ์ (Device Location Map)
+            </h3>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">
+              พิกัดอ้างอิงจากการระบุตำแหน่งขณะกดยืนยันตัวตน
+            </span>
+          </div>
+          <div id="map-container" style="height: 380px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); overflow: hidden; background: rgba(0,0,0,0.2); z-index: 10;"></div>
         </div>
 
         <div class="table-container">

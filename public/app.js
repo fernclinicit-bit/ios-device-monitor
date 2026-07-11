@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let logs = [];
   let serverIpAddress = 'localhost';
   let currentActiveView = 'admin'; // 'admin' or 'client'
+  let mapInstance = null;
+  let mapMarkers = {}; // Store markers by deviceId
   
   // Accurate iOS Detection (Including iPads on iOS 13+ which report as MacIntel)
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
@@ -108,6 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
       clientView.classList.add('hidden');
       viewSwitcherBar.classList.remove('hidden');
       if (desktopBackToAdmin) desktopBackToAdmin.classList.add('hidden');
+      
+      // Fix Leaflet dimensions when container becomes visible
+      setTimeout(() => {
+        if (mapInstance) mapInstance.invalidateSize();
+      }, 50);
     } else {
       adminView.classList.add('hidden');
       clientView.classList.remove('hidden');
@@ -136,6 +143,120 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.error('Error loading data:', err);
       showToast('Network error: server unreachable');
+    }
+  }
+
+  // --- Admin Map Logic ---
+  function initAdminMap() {
+    if (mapInstance) return; // Already initialized
+
+    const mapContainer = document.getElementById('map-container');
+    if (!mapContainer) return;
+
+    // Default view to Thailand
+    mapInstance = L.map('map-container').setView([13.736717, 100.523186], 6);
+
+    // Dark-mode Map Tiles (CartoDB Dark Matter)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(mapInstance);
+    
+    // Fix Leaflet sizing bug when rendering inside hidden tab
+    setTimeout(() => {
+      if (mapInstance) mapInstance.invalidateSize();
+    }, 100);
+  }
+
+  function updateAdminMap() {
+    initAdminMap();
+    if (!mapInstance) return;
+
+    // Track active marker coordinates to fit bounds
+    const coordinates = [];
+
+    devices.forEach(d => {
+      const hasGps = d.latitude !== undefined && d.latitude !== null && d.longitude !== undefined && d.longitude !== null;
+      if (hasGps) {
+        const latLng = [d.latitude, d.longitude];
+        coordinates.push(latLng);
+
+        // Details content for popup
+        const statusBadgeMarkup = d.status === 'active' 
+          ? '<span style="background: #10b981; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;">Active</span>'
+          : d.status === 'pending'
+          ? '<span style="background: #f59e0b; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;">Pending Verify</span>'
+          : d.status === 'unverified'
+          ? '<span style="background: rgba(255,255,255,0.15); color: #ccc; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;">Unverified</span>'
+          : '<span style="background: #ef4444; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;">Overdue</span>';
+
+        const lastCheckTime = d.lastVerifiedAt ? new Date(d.lastVerifiedAt).toLocaleString() : 'Never';
+
+        const popupContent = `
+          <div style="font-family: 'Plus Jakarta Sans', sans-serif; color: #fff;">
+            <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
+              <span>${escapeHtml(d.userName || d.name)}</span>
+              ${statusBadgeMarkup}
+            </div>
+            <div style="font-size: 0.75rem; color: #ccc; margin-bottom: 3px;">💼 Position: ${escapeHtml(d.position || '-')}</div>
+            <div style="font-size: 0.75rem; color: #ccc; margin-bottom: 3px;">🔢 S/N: ${escapeHtml(d.deviceNumber || '-')}</div>
+            <div style="font-size: 0.75rem; color: #ccc; margin-bottom: 6px;">🔌 Accessories: ${escapeHtml(d.accessories || '-')}</div>
+            <div style="font-size: 0.7rem; color: #888; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;">Confirmed: ${lastCheckTime}</div>
+          </div>
+        `;
+
+        if (mapMarkers[d.id]) {
+          // Update existing marker position and popup content
+          mapMarkers[d.id].setLatLng(latLng);
+          mapMarkers[d.id].getPopup().setContent(popupContent);
+        } else {
+          // Create new marker
+          const marker = L.marker(latLng).addTo(mapInstance);
+          marker.bindPopup(popupContent);
+          mapMarkers[d.id] = marker;
+        }
+      } else {
+        // Device doesn't have GPS, remove its marker if it exists
+        if (mapMarkers[d.id]) {
+          mapInstance.removeLayer(mapMarkers[d.id]);
+          delete mapMarkers[d.id];
+        }
+      }
+    });
+
+    // Remove markers of deleted devices
+    const currentDeviceIds = devices.map(d => d.id);
+    Object.keys(mapMarkers).forEach(id => {
+      if (!currentDeviceIds.includes(id)) {
+        mapInstance.removeLayer(mapMarkers[id]);
+        delete mapMarkers[id];
+      }
+    });
+
+    // Fit map bounds if there are markers, with safety check
+    if (coordinates.length > 0) {
+      try {
+        // Only fit bounds if we have coordinates and the map is visible
+        if (currentActiveView === 'admin') {
+          mapInstance.fitBounds(coordinates, { maxZoom: 14, padding: [40, 40] });
+        }
+      } catch (e) {
+        console.warn('fitBounds failed:', e);
+      }
+    }
+  }
+
+  // Helper to focus on a specific device
+  function focusDeviceOnMap(deviceId) {
+    const marker = mapMarkers[deviceId];
+    if (marker && mapInstance) {
+      mapInstance.setView(marker.getLatLng(), 16);
+      marker.openPopup();
+      // Scroll to map container smoothly
+      document.getElementById('map-container').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      showToast('No location coordinates available for this device.');
     }
   }
 
@@ -206,6 +327,11 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td>
             <div style="display: flex; gap: 0.5rem;">
+              ${d.latitude !== undefined && d.latitude !== null ? `
+                <button class="btn btn-secondary btn-show-map" data-id="${d.id}" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; background: var(--accent-indigo); color: #fff; border-color: var(--accent-indigo);">
+                  📍 Map
+                </button>
+              ` : ''}
               <button class="btn btn-secondary btn-verify-manual" data-id="${d.id}" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;">
                 Verify
               </button>
@@ -238,6 +364,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Setup action button listeners
+    document.querySelectorAll('.btn-show-map').forEach(btn => {
+      btn.addEventListener('click', () => focusDeviceOnMap(btn.dataset.id));
+    });
+
     document.querySelectorAll('.btn-verify-manual').forEach(btn => {
       btn.addEventListener('click', () => verifyDevice(btn.dataset.id));
     });
@@ -262,6 +392,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
     });
+
+    // Update map view with current device markers
+    updateAdminMap();
   }
 
   // --- Client View Logic ---
@@ -317,7 +450,6 @@ document.addEventListener('DOMContentLoaded', () => {
   btnVerifyPresence.addEventListener('click', async () => {
     const deviceId = localStorage.getItem('ios_device_id');
     if (!deviceId) return;
-    
     // Immediate visual feedback
     btnVerifyPresence.style.transform = 'scale(0.95)';
     btnVerifyPresence.disabled = true;
@@ -331,47 +463,72 @@ document.addEventListener('DOMContentLoaded', () => {
         <svg class="orb-icon spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;">
           <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="10"></circle>
         </svg>
-        Verifying...
+        Obtaining GPS...
       </span>
     `;
 
-    try {
-      const response = await fetch('/api/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deviceId })
-      });
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Show success state on button
+    const sendVerification = async (lat, lng) => {
+      try {
         btnVerifyPresence.innerHTML = `
           <span class="orb-content">
-            <svg class="orb-icon" style="color: #10b981;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12"></polyline>
+            <svg class="orb-icon spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;">
+              <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="10"></circle>
             </svg>
-            Success!
+            Verifying...
           </span>
         `;
-        showToast('Verification Confirmed Successfully! ✓');
-        loadData();
-      } else {
-        alert(data.error);
-        btnVerifyPresence.innerHTML = originalContent;
-      }
-    } catch (err) {
-      console.error(err);
-      showToast('Verification submission failed');
-      btnVerifyPresence.innerHTML = originalContent;
-    } finally {
-      setTimeout(() => {
-        btnVerifyPresence.disabled = false;
-        btnVerifyPresence.style.transform = '';
-        // If it was success, loadData() already updated UI, but let's restore original html just in case
-        if (btnVerifyPresence.innerHTML.includes('Success!') || btnVerifyPresence.innerHTML.includes('Verifying')) {
+        const response = await fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId, latitude: lat, longitude: lng })
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+          // Show success state on button
+          btnVerifyPresence.innerHTML = `
+            <span class="orb-content">
+              <svg class="orb-icon" style="color: #10b981;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Success!
+            </span>
+          `;
+          showToast('Verification Confirmed Successfully! ✓');
+          loadData();
+        } else {
+          alert(data.error);
           btnVerifyPresence.innerHTML = originalContent;
         }
-      }, 1500);
+      } catch (err) {
+        console.error(err);
+        showToast('Verification submission failed');
+        btnVerifyPresence.innerHTML = originalContent;
+      } finally {
+        setTimeout(() => {
+          btnVerifyPresence.disabled = false;
+          btnVerifyPresence.style.transform = '';
+          // If it was success, loadData() already updated UI, but let's restore original html just in case
+          if (btnVerifyPresence.innerHTML.includes('Success!') || btnVerifyPresence.innerHTML.includes('Verifying') || btnVerifyPresence.innerHTML.includes('GPS')) {
+            btnVerifyPresence.innerHTML = originalContent;
+          }
+        }, 1500);
+      }
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          sendVerification(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          console.warn('Geolocation failed or denied:', error);
+          sendVerification(null, null);
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    } else {
+      sendVerification(null, null);
     }
   });
 

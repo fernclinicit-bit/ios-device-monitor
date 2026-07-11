@@ -316,7 +316,7 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
-        const { deviceId } = data;
+        const { deviceId, latitude, longitude } = data;
 
         if (!deviceId) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -333,9 +333,19 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        // Update verification time
-        db.devices[deviceIndex].lastVerifiedAt = new Date().toISOString();
-        addLog(db, deviceId, db.devices[deviceIndex].name, 'Confirmed presence (Monthly Check)');
+        // Update verification time and GPS coordinates
+        const now = new Date().toISOString();
+        db.devices[deviceIndex].lastVerifiedAt = now;
+        
+        let logMsg = 'Confirmed presence (Monthly Check)';
+        if (latitude !== undefined && latitude !== null && longitude !== undefined && longitude !== null) {
+          db.devices[deviceIndex].latitude = latitude;
+          db.devices[deviceIndex].longitude = longitude;
+          db.devices[deviceIndex].lastLocationTime = now;
+          logMsg += ` at [Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}]`;
+        }
+        
+        addLog(db, deviceId, db.devices[deviceIndex].name, logMsg);
         writeDb(db);
 
         console.log(`Device Verified: ${db.devices[deviceIndex].name} (${deviceId})`);
