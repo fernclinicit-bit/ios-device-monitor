@@ -193,16 +193,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const lastCheckTime = d.lastVerifiedAt ? new Date(d.lastVerifiedAt).toLocaleString() : 'Never';
 
+        const addressMarkup = d.address ? `
+          <div style="font-size: 0.75rem; color: #a78bfa; margin-top: 6px; border-top: 1px dashed rgba(255,255,255,0.15); padding-top: 6px; word-break: break-word;">
+            📍 ที่อยู่: ${escapeHtml(d.address)}
+          </div>
+        ` : '';
+
         const popupContent = `
-          <div style="font-family: 'Plus Jakarta Sans', sans-serif; color: #fff;">
+          <div style="font-family: 'Plus Jakarta Sans', sans-serif; color: #fff; max-width: 220px;">
             <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
               <span>${escapeHtml(d.userName || d.name)}</span>
               ${statusBadgeMarkup}
             </div>
             <div style="font-size: 0.75rem; color: #ccc; margin-bottom: 3px;">💼 Position: ${escapeHtml(d.position || '-')}</div>
             <div style="font-size: 0.75rem; color: #ccc; margin-bottom: 3px;">🔢 S/N: ${escapeHtml(d.deviceNumber || '-')}</div>
-            <div style="font-size: 0.75rem; color: #ccc; margin-bottom: 6px;">🔌 Accessories: ${escapeHtml(d.accessories || '-')}</div>
-            <div style="font-size: 0.7rem; color: #888; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;">Confirmed: ${lastCheckTime}</div>
+            <div style="font-size: 0.75rem; color: #ccc; margin-bottom: 4px;">🔌 Accessories: ${escapeHtml(d.accessories || '-')}</div>
+            ${addressMarkup}
+            <div style="font-size: 0.7rem; color: #888; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px; margin-top: 6px;">Confirmed: ${lastCheckTime}</div>
           </div>
         `;
 
@@ -296,6 +303,12 @@ document.addEventListener('DOMContentLoaded', () => {
           verifyUrl = window.location.origin + '/?id=' + d.id;
         }
         
+        const addressRow = d.address ? `
+          <div style="font-size: 0.75rem; color: var(--accent-indigo); margin-top: 0.15rem; word-break: break-word;">
+            📍 ที่อยู่: ${escapeHtml(d.address)}
+          </div>
+        ` : '';
+
         tr.innerHTML = `
           <td>
             <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">${escapeHtml(d.userName || d.name)}</div>
@@ -305,6 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">
               🔢 S/N: ${escapeHtml(d.deviceNumber || '-')} | 🔌 Acc: ${escapeHtml(d.accessories || '-')}
             </div>
+            ${addressRow}
             <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem;">
               ${d.isIOS ? '📱 iOS Device' : '💻 Other'}
             </div>

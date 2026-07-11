@@ -141,6 +141,38 @@ function loadLocalDb() {
   }
 }
 
+// Reverse Geocoding helper using OpenStreetMap Nominatim
+function getAddressFromCoords(lat, lng) {
+  return new Promise((resolve) => {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=th`;
+    const options = {
+      headers: {
+        'User-Agent': 'iOS-Device-Monitor-App'
+      }
+    };
+
+    https.get(url, options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          try {
+            const parsed = JSON.parse(body);
+            resolve(parsed.display_name || '');
+          } catch (e) {
+            resolve('');
+          }
+        } else {
+          resolve('');
+        }
+      });
+    }).on('error', (e) => {
+      console.error('Nominatim reverse geocode error:', e.message);
+      resolve('');
+    });
+  });
+}
+
 // Log actions
 function addLog(db, deviceId, deviceName, action) {
   const logEntry = {
@@ -313,7 +345,7 @@ const server = http.createServer((req, res) => {
   if (req.method === 'POST' && pathname === '/api/verify') {
     let body = '';
     req.on('data', chunk => { body += chunk.toString(); });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const data = JSON.parse(body);
         const { deviceId, latitude, longitude } = data;
@@ -342,7 +374,16 @@ const server = http.createServer((req, res) => {
           db.devices[deviceIndex].latitude = latitude;
           db.devices[deviceIndex].longitude = longitude;
           db.devices[deviceIndex].lastLocationTime = now;
-          logMsg += ` at [Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}]`;
+          
+          // Get physical address from OpenStreetMap Nominatim
+          const address = await getAddressFromCoords(latitude, longitude);
+          db.devices[deviceIndex].address = address || '';
+          
+          if (address) {
+            logMsg += ` at ${address}`;
+          } else {
+            logMsg += ` at [Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}]`;
+          }
         }
         
         addLog(db, deviceId, db.devices[deviceIndex].name, logMsg);
