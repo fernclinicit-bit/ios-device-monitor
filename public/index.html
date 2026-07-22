@@ -122,6 +122,40 @@
           </div>
         </div>
 
+        <!-- EDIT DEVICE DRAWER -->
+        <div id="edit-device-drawer" class="drawer hidden">
+          <input type="hidden" id="edit-device-id">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="input-field">
+              <label for="edit-user-name">ข้อมูลผู้ใช้งาน (User Info)</label>
+              <input type="text" id="edit-user-name" placeholder="ชื่อผู้ใช้งาน">
+            </div>
+            <div class="input-field">
+              <label for="edit-position">ตำแหน่ง (Position)</label>
+              <input type="text" id="edit-position" placeholder="เช่น Manager, Staff">
+            </div>
+            <div class="input-field">
+              <label for="edit-device-number">หมายเลขอุปกรณ์ (Device S/N)</label>
+              <input type="text" id="edit-device-number" placeholder="เช่น Serial Number, Asset ID">
+            </div>
+            <div class="input-field">
+              <label for="edit-accessories">อุปกรณ์เสริม (Accessories)</label>
+              <input type="text" id="edit-accessories" placeholder="เช่น สายชาร์จ, หูฟัง, เคส">
+            </div>
+          </div>
+          <div style="display: flex; gap: 1rem; align-items: flex-end;">
+            <div class="input-field select-field" style="flex: 1;">
+              <label for="edit-device-type">ประเภทอุปกรณ์ (Device Type)</label>
+              <select id="edit-device-type">
+                <option value="ios">iOS Device (iPhone/iPad)</option>
+                <option value="other">Other Device</option>
+              </select>
+            </div>
+            <button id="btn-cancel-edit" class="btn btn-secondary" style="height: 42px;">Cancel</button>
+            <button id="btn-save-edit" class="btn btn-primary" style="height: 42px;">Save Changes</button>
+          </div>
+        </div>
+
         <!-- MAP TRACKING CARD -->
         <div class="glass-card" style="margin-bottom: 1.5rem; padding: 1.5rem;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">

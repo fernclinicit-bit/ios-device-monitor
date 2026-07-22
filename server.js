@@ -440,6 +440,58 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // POST /api/edit-device - Edit device details
+  if (req.method === 'POST' && pathname === '/api/edit-device') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const { deviceId, name, position, deviceNumber, accessories, isIOS } = data;
+
+        if (!deviceId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Device ID is required.' }));
+          return;
+        }
+
+        if (!name || name.trim() === '') {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Device name is required.' }));
+          return;
+        }
+
+        const db = readDb();
+        const deviceIndex = db.devices.findIndex(d => d.id === deviceId);
+        if (deviceIndex === -1) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Device not found.' }));
+          return;
+        }
+
+        // Update fields
+        db.devices[deviceIndex].name = name.trim();
+        db.devices[deviceIndex].userName = name.trim();
+        db.devices[deviceIndex].position = (position || '').trim();
+        db.devices[deviceIndex].deviceNumber = (deviceNumber || '').trim();
+        db.devices[deviceIndex].accessories = (accessories || '').trim();
+        db.devices[deviceIndex].isIOS = !!isIOS;
+
+        addLog(db, deviceId, name.trim(), 'Edited device details');
+        writeDb(db);
+
+        console.log(`Device Edited: ${name.trim()} (${deviceId})`);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Device details updated successfully.' }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid payload' }));
+      }
+    });
+    return;
+  }
+
   // --- Static File Server ---
   let reqUrl = pathname === '/' ? '/index.html' : pathname;
   // Prevent directory traversal attacks

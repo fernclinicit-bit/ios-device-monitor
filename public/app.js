@@ -19,6 +19,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const newAccessories = document.getElementById('new-accessories');
   const newDeviceType = document.getElementById('new-device-type');
   const btnSubmitDevice = document.getElementById('btn-submit-device');
+  
+  // Edit Device DOM
+  const editDeviceDrawer = document.getElementById('edit-device-drawer');
+  const editDeviceId = document.getElementById('edit-device-id');
+  const editUserInfo = document.getElementById('edit-user-name');
+  const editPosition = document.getElementById('edit-position');
+  const editDeviceNumber = document.getElementById('edit-device-number');
+  const editAccessories = document.getElementById('edit-accessories');
+  const editDeviceType = document.getElementById('edit-device-type');
+  const btnSaveEdit = document.getElementById('btn-save-edit');
+  const btnCancelEdit = document.getElementById('btn-cancel-edit');
+
   const devicesListTbody = document.getElementById('devices-list-tbody');
   const emptyDevicesMsg = document.getElementById('empty-devices-msg');
   const systemLogsList = document.getElementById('system-logs-list');
@@ -379,6 +391,9 @@ document.addEventListener('DOMContentLoaded', () => {
               <button class="btn btn-secondary btn-verify-manual" data-id="${d.id}" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;">
                 Verify
               </button>
+              <button class="btn btn-secondary btn-edit-device" data-id="${d.id}" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; background: var(--accent-purple); color: #fff; border-color: var(--accent-purple);">
+                Edit
+              </button>
               <button class="btn-danger-sm btn-delete-device" data-id="${d.id}">
                 Delete
               </button>
@@ -414,6 +429,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.btn-verify-manual').forEach(btn => {
       btn.addEventListener('click', () => verifyDevice(btn.dataset.id));
+    });
+
+    document.querySelectorAll('.btn-edit-device').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const d = devices.find(x => x.id === btn.dataset.id);
+        if (d) {
+          editDeviceId.value = d.id;
+          editUserInfo.value = d.userName || d.name || '';
+          editPosition.value = d.position || '';
+          editDeviceNumber.value = d.deviceNumber || '';
+          editAccessories.value = d.accessories || '';
+          editDeviceType.value = d.isIOS ? 'ios' : 'other';
+          
+          editDeviceDrawer.classList.remove('hidden');
+          // Hide add drawer if open
+          const addDeviceDrawer = document.getElementById('add-device-drawer');
+          if (addDeviceDrawer) addDeviceDrawer.classList.add('hidden');
+          
+          editDeviceDrawer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
     });
 
     document.querySelectorAll('.btn-delete-device').forEach(btn => {
@@ -680,6 +716,56 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Registration failed');
     }
   });
+
+  // Cancel Edit
+  if (btnCancelEdit) {
+    btnCancelEdit.addEventListener('click', () => {
+      editDeviceDrawer.classList.add('hidden');
+    });
+  }
+
+  // Save Edit
+  if (btnSaveEdit) {
+    btnSaveEdit.addEventListener('click', async () => {
+      const deviceId = editDeviceId.value;
+      const name = editUserInfo.value.trim();
+      const position = editPosition.value.trim();
+      const deviceNumber = editDeviceNumber.value.trim();
+      const accessories = editAccessories.value.trim();
+      const type = editDeviceType.value;
+      
+      if (!name) {
+        alert('โปรดกรอกข้อมูลผู้ใช้งาน');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/edit-device', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            deviceId: deviceId,
+            name: name,
+            position: position,
+            deviceNumber: deviceNumber,
+            accessories: accessories,
+            isIOS: type === 'ios'
+          })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          showToast('Device updated successfully!');
+          editDeviceDrawer.classList.add('hidden');
+          loadData();
+        } else {
+          alert(data.error);
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Update failed');
+      }
+    });
+  }
 
   // Helper to prevent HTML injections
   function escapeHtml(str) {
