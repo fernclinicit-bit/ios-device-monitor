@@ -184,7 +184,7 @@ header {
 /* Stats Overview */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1.25rem;
   margin-bottom: 1.5rem;
 }
@@ -212,6 +212,15 @@ header {
 .warning-text {
   color: var(--warning-color);
   text-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+.success-text {
+  color: var(--success-color);
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+.muted-text {
+  color: var(--text-secondary);
 }
 
 .danger-text {

@@ -7,6 +7,16 @@ const https = require('https');
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DB_FILE = path.join(__dirname, 'data', 'db.json');
+const ACTION_PASSWORD = process.env.ACTION_PASSWORD || '664749';
+
+function requireActionPassword(data, res) {
+  if (!data || data.password !== ACTION_PASSWORD) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'รหัสผ่านไม่ถูกต้อง' }));
+    return false;
+  }
+  return true;
+}
 
 // Memory Cache to prevent API exhaustion and provide 0ms reads
 let dbInMemory = { devices: [], logs: [] };
@@ -292,6 +302,24 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // POST /api/check-password - Validate an action password before opening a protected control
+  if (req.method === 'POST' && pathname === '/api/check-password') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        if (!requireActionPassword(data, res)) return;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ valid: true }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid payload' }));
+      }
+    });
+    return;
+  }
+
   // POST /api/register - Register a new device
   if (req.method === 'POST' && pathname === '/api/register') {
     let body = '';
@@ -299,6 +327,7 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
+        if (!requireActionPassword(data, res)) return;
         const { name, position, deviceNumber, accessories, userAgent, isIOS } = data;
 
         if (!name || name.trim() === '') {
@@ -348,6 +377,7 @@ const server = http.createServer((req, res) => {
     req.on('end', async () => {
       try {
         const data = JSON.parse(body);
+        if (!requireActionPassword(data, res)) return;
         const { deviceId, latitude, longitude } = data;
 
         if (!deviceId) {
@@ -408,6 +438,7 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
+        if (!requireActionPassword(data, res)) return;
         const { deviceId } = data;
 
         if (!deviceId) {
@@ -447,6 +478,7 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
+        if (!requireActionPassword(data, res)) return;
         const { deviceId, name, position, deviceNumber, accessories, isIOS } = data;
 
         if (!deviceId) {
