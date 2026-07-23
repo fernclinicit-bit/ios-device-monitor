@@ -9,7 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Admin DOM
   const statTotalDevices = document.getElementById('stat-total-devices');
+  const statActiveDevices = document.getElementById('stat-active-devices');
   const statPendingDevices = document.getElementById('stat-pending-devices');
+  const statUnverifiedDevices = document.getElementById('stat-unverified-devices');
   const statOverdueDevices = document.getElementById('stat-overdue-devices');
   const btnShowAddDevice = document.getElementById('btn-show-add-device');
   const addDeviceDrawer = document.getElementById('add-device-drawer');
@@ -63,6 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentActiveView = 'admin'; // 'admin' or 'client'
   let mapInstance = null;
   let mapMarkers = {}; // Store markers by deviceId
+  let addDevicePassword = null;
+  let editDevicePassword = null;
   
   // Accurate iOS Detection (Including iPads on iOS 13+ which report as MacIntel)
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
@@ -107,7 +111,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Toggle Add Device drawer
-  btnShowAddDevice.addEventListener('click', () => {
+  btnShowAddDevice.addEventListener('click', async () => {
+    const password = await requestActionPassword('เพิ่มอุปกรณ์');
+    if (!password) return;
+    addDevicePassword = password;
     addDeviceDrawer.classList.toggle('hidden');
   });
 
@@ -118,6 +125,28 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       toastNotification.classList.add('hidden');
     }, 3000);
+  }
+
+  async function requestActionPassword(actionLabel) {
+    const password = prompt(`กรุณาใส่รหัสผ่านเพื่อ${actionLabel}`);
+    if (password === null) return null;
+    try {
+      const response = await fetch('/api/check-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.error || 'รหัสผ่านไม่ถูกต้อง');
+        return null;
+      }
+      return password;
+    } catch (err) {
+      console.error(err);
+      showToast('ไม่สามารถตรวจสอบรหัสผ่านได้');
+      return null;
+    }
   }
 
   function updateViewVisibility() {
@@ -288,11 +317,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateAdminDashboard() {
     // Stat Counters
     const total = devices.length;
+    const active = devices.filter(d => d.status === 'active').length;
     const pending = devices.filter(d => d.status === 'pending').length;
+    const unverified = devices.filter(d => d.status === 'unverified').length;
     const overdue = devices.filter(d => d.status === 'overdue').length;
 
     statTotalDevices.textContent = total;
+    statActiveDevices.textContent = active;
     statPendingDevices.textContent = pending;
+    statUnverifiedDevices.textContent = unverified;
     statOverdueDevices.textContent = overdue;
 
     // Filter devices based on Search Query and Status
@@ -428,11 +461,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.btn-verify-manual').forEach(btn => {
-      btn.addEventListener('click', () => verifyDevice(btn.dataset.id));
+      btn.addEventListener('click', async () => {
+        const password = await requestActionPassword('ยืนยันอุปกรณ์');
+        if (password) verifyDevice(btn.dataset.id, password);
+      });
     });
 
     document.querySelectorAll('.btn-edit-device').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
+        const password = await requestActionPassword('แก้ไขอุปกรณ์');
+        if (!password) return;
+        editDevicePassword = password;
         const d = devices.find(x => x.id === btn.dataset.id);
         if (d) {
           editDeviceId.value = d.id;
@@ -453,7 +492,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.btn-delete-device').forEach(btn => {
-      btn.addEventListener('click', () => deleteDevice(btn.dataset.id));
+      btn.addEventListener('click', async () => {
+        const password = await requestActionPassword('ลบอุปกรณ์');
+        if (password) deleteDevice(btn.dataset.id, password);
+      });
     });
 
     document.querySelectorAll('.btn-copy-link').forEach(btn => {
@@ -530,6 +572,8 @@ document.addEventListener('DOMContentLoaded', () => {
   btnVerifyPresence.addEventListener('click', async () => {
     const deviceId = localStorage.getItem('ios_device_id');
     if (!deviceId) return;
+    const password = await requestActionPassword('ยืนยันอุปกรณ์');
+    if (!password) return;
     // Immediate visual feedback
     btnVerifyPresence.style.transform = 'scale(0.95)';
     btnVerifyPresence.disabled = true;
@@ -560,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const response = await fetch('/api/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ deviceId, latitude: lat, longitude: lng })
+          body: JSON.stringify({ deviceId, latitude: lat, longitude: lng, password })
         });
         const data = await response.json();
         
@@ -626,12 +670,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- API Action Triggers ---
   
   // Submit presence verification
-  async function verifyDevice(deviceId) {
+  async function verifyDevice(deviceId, password) {
     try {
       const response = await fetch('/api/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deviceId })
+        body: JSON.stringify({ deviceId, password })
       });
       const data = await response.json();
       if (response.ok) {
@@ -647,13 +691,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Delete device from dashboard
-  async function deleteDevice(deviceId) {
+  async function deleteDevice(deviceId, password) {
     if (!confirm('Are you sure you want to remove this device from monitoring?')) return;
     try {
       const response = await fetch('/api/delete-device', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deviceId })
+        body: JSON.stringify({ deviceId, password })
       });
       const data = await response.json();
       if (response.ok) {
@@ -674,6 +718,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Submit device from Admin drawer
   btnSubmitDevice.addEventListener('click', async () => {
+    if (addDevicePassword === null) {
+      addDevicePassword = await requestActionPassword('เพิ่มอุปกรณ์');
+      if (!addDevicePassword) return;
+    }
     const name = newUserInfo.value.trim();
     const position = newPosition.value.trim();
     const deviceNumber = newDeviceNumber.value.trim();
@@ -695,7 +743,8 @@ document.addEventListener('DOMContentLoaded', () => {
           deviceNumber: deviceNumber,
           accessories: accessories,
           isIOS: type === 'ios',
-          userAgent: type === 'ios' ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)' : navigator.userAgent
+          userAgent: type === 'ios' ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)' : navigator.userAgent,
+          password: addDevicePassword
         })
       });
       const data = await response.json();
@@ -707,6 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
         newDeviceNumber.value = '';
         newAccessories.value = '';
         addDeviceDrawer.classList.add('hidden');
+        addDevicePassword = null;
         loadData();
       } else {
         alert(data.error);
@@ -721,12 +771,17 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCancelEdit) {
     btnCancelEdit.addEventListener('click', () => {
       editDeviceDrawer.classList.add('hidden');
+      editDevicePassword = null;
     });
   }
 
   // Save Edit
   if (btnSaveEdit) {
     btnSaveEdit.addEventListener('click', async () => {
+      if (editDevicePassword === null) {
+        editDevicePassword = await requestActionPassword('แก้ไขอุปกรณ์');
+        if (!editDevicePassword) return;
+      }
       const deviceId = editDeviceId.value;
       const name = editUserInfo.value.trim();
       const position = editPosition.value.trim();
@@ -749,13 +804,15 @@ document.addEventListener('DOMContentLoaded', () => {
             position: position,
             deviceNumber: deviceNumber,
             accessories: accessories,
-            isIOS: type === 'ios'
+            isIOS: type === 'ios',
+            password: editDevicePassword
           })
         });
         const data = await response.json();
         if (response.ok) {
           showToast('Device updated successfully!');
           editDeviceDrawer.classList.add('hidden');
+          editDevicePassword = null;
           loadData();
         } else {
           alert(data.error);
