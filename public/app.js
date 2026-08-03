@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Asset Nav Tabs
   const navDevicesBtn = document.getElementById('nav-devices-btn');
   const navAssetsBtn = document.getElementById('nav-assets-btn');
+  const navClientPortalBtn = document.getElementById('nav-client-portal-btn');
   const devicesSection = document.getElementById('devices-section-content');
   const assetsSection = document.getElementById('assets-section-content');
 
@@ -1225,7 +1226,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Asset Management Event Listeners ---
   
   // Tab Switching
-  if (navDevicesBtn && navAssetsBtn) {
+  if (navDevicesBtn && navAssetsBtn && navClientPortalBtn) {
     navDevicesBtn.addEventListener('click', () => {
       navDevicesBtn.classList.replace('btn-secondary', 'btn-primary');
       navAssetsBtn.classList.replace('btn-primary', 'btn-secondary');
@@ -1237,6 +1238,14 @@ document.addEventListener('DOMContentLoaded', () => {
       navDevicesBtn.classList.replace('btn-primary', 'btn-secondary');
       assetsSection.classList.remove('hidden');
       devicesSection.classList.add('hidden');
+    });
+    navClientPortalBtn.addEventListener('click', () => {
+      // Trigger the existing Switch View logic to go to Client Portal
+      if (!adminView.classList.contains('hidden')) {
+        adminView.classList.add('hidden');
+        clientView.classList.remove('hidden');
+        btnToggleView.textContent = 'Switch to Admin View';
+      }
     });
   }
 
