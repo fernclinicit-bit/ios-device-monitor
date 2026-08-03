@@ -704,18 +704,99 @@ document.addEventListener('DOMContentLoaded', () => {
         clientStatusBadge.textContent = 'Overdue Check';
       }
     } else {
-      // Device is not registered, show registration form
+      // Device is not registered, show registration form/QR scanner
       localStorage.removeItem('ios_device_id');
       clientRegistrationSection.classList.remove('hidden');
       clientVerificationSection.classList.add('hidden');
-      clientDeviceHeader.textContent = isIOS ? 'อุปกรณ์ iOS ใหม่ (New iOS Device)' : 'อุปกรณ์ใหม่ (New Device)';
+      clientDeviceHeader.textContent = 'ระบบสแกนตรวจสอบทรัพย์สิน';
+      
+      // Initialize QR Scanner if not already running
+      if (typeof Html5QrcodeScanner !== 'undefined') {
+        initQrScanner();
+      }
     }
   }
 
-  // Client registration is handled solely by the Admin on the dashboard.
+  // --- HTML5 QR Scanner Logic ---
+  let html5QrcodeScanner = null;
 
+  function initQrScanner() {
+    if (html5QrcodeScanner) return; // Already initialized
+    
+    const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
+    html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", qrConfig, false);
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+  }
 
-  // Tap orb to verify client presence
+  async function onScanSuccess(decodedText, decodedResult) {
+    const resultDiv = document.getElementById('qr-reader-results');
+    if (!resultDiv) return;
+    
+    let assetId = decodedText;
+    
+    // Extract ID if it's a URL (e.g. http://.../scanner.html?id=ast-xxx)
+    try {
+      const url = new URL(decodedText);
+      const idParam = url.searchParams.get('id');
+      if (idParam) {
+        assetId = idParam;
+      }
+    } catch (e) {
+      // It's not a URL, use raw decoded text
+    }
+
+    if (assetId && assetId.startsWith('ast-')) {
+      // Pause scanner while processing
+      if (html5QrcodeScanner) html5QrcodeScanner.pause();
+      resultDiv.innerHTML = `<span style="color: #6366f1;">กำลังเช็คอินทรัพย์สิน...</span>`;
+      
+      try {
+        const res = await fetch('/api/scan-asset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assetId })
+        });
+        const data = await res.json();
+        
+        if (data.error) {
+          resultDiv.innerHTML = `<span style="color: #ef4444;">❌ ล้มเหลว: ${data.error}</span>`;
+        } else {
+          resultDiv.innerHTML = `<span style="color: #10b981;">✅ เช็คอินสำเร็จ: ${data.asset.name}</span>`;
+          loadData(); // Refresh UI silently
+        }
+      } catch (err) {
+        console.error(err);
+        resultDiv.innerHTML = `<span style="color: #ef4444;">❌ เกิดข้อผิดพลาดด้านเครือข่าย</span>`;
+      }
+      
+      // Resume scanning after 3 seconds
+      setTimeout(() => {
+        if (html5QrcodeScanner) {
+          html5QrcodeScanner.resume();
+        }
+        resultDiv.innerHTML = '';
+      }, 3000);
+    } else {
+      // It might be an iOS ID or something else not handled by the Asset Scanner
+      resultDiv.innerHTML = `<span style="color: #f59e0b;">⚠️ QR Code ไม่รองรับ (${assetId})</span>`;
+    }
+  }
+
+  function onScanFailure(error) {
+    // Ignore continuous scanning failures
+  }
+
+  // Handle cleanup when leaving client view to Admin view
+  if (btnBackToAdmin) {
+    btnBackToAdmin.addEventListener('click', () => {
+      clientView.classList.add('hidden');
+      adminView.classList.remove('hidden');
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(err => console.error("Failed to clear scanner", err));
+        html5QrcodeScanner = null;
+      }
+    });
+  }  // Tap orb to verify client presence
   btnVerifyPresence.addEventListener('click', async () => {
     const deviceId = localStorage.getItem('ios_device_id');
     if (!deviceId) return;

@@ -14,6 +14,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <!-- QRCode.js Integration -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- HTML5 QR Code Scanner -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -348,8 +350,15 @@
 
         <!-- DEVICE LINK ERROR PANEL -->
         <section id="client-registration-section" class="client-sub-panel hidden">
-          <div class="instruction-box" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; margin-bottom: 0; text-align: left;">
-            <p><strong>⚠️ จำเป็นต้องใช้ลิงก์ยืนยันตัวตน</strong><br><br>กรุณาเข้าใช้งานผ่านลิงก์ยืนยันตัวตน (Verification Link) ที่ได้รับจากผู้ดูแลระบบ (Admin) เพื่อทำการเช็คอินอุปกรณ์นี้<br><br><i>หากคุณคือผู้ดูแลระบบ: โปรดลงทะเบียนอุปกรณ์นี้ใน Admin Dashboard ก่อน จากนั้นคัดลอกลิงก์ส่งให้ผู้ใช้งาน</i></p>
+          <!-- QR Scanner / Default State -->
+          <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; text-align: center;">
+            <p style="color: #fff; font-size: 0.95rem; margin-bottom: 1rem;"><strong>📷 ระบบสแกน QR ทรัพย์สิน</strong><br>แสกนคิวอาร์โค้ดของทรัพย์สินเพื่อทำการ Check-in</p>
+            <div id="qr-reader" style="width: 100%; border-radius: 8px; overflow: hidden;"></div>
+            <div id="qr-reader-results" style="margin-top: 1rem; font-weight: bold; color: var(--accent-purple);"></div>
+          </div>
+          
+          <div class="instruction-box" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; margin-bottom: 0; text-align: left; font-size: 0.85rem;">
+            <p><strong>สำหรับอุปกรณ์มือถือ (Device)</strong><br>กรุณาเข้าใช้งานผ่านลิงก์ยืนยันตัวตน (Verification Link) ที่ได้รับจาก Admin</p>
           </div>
         </section>
 
