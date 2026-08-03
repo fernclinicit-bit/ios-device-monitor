@@ -675,34 +675,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentDevice = devices.find(d => d.id === savedDeviceId);
 
     // Always hide the selector panel to keep client view clean as requested
-    clientDeviceSelectorPanel.classList.add('hidden');
+    if (typeof clientDeviceSelectorPanel !== 'undefined' && clientDeviceSelectorPanel) {
+      clientDeviceSelectorPanel.classList.add('hidden');
+    }
 
-    if (currentDevice) {
-      // Device is registered, show verification screen
+    if (currentDevice || window.adminTestMode) {
+      // Device is registered (or we are in Admin Test Mode), show verification screen
       clientRegistrationSection.classList.add('hidden');
       clientVerificationSection.classList.remove('hidden');
       
-      clientDeviceHeader.textContent = currentDevice.userName || currentDevice.name;
-      clientPositionVal.textContent = currentDevice.position || '-';
-      clientDeviceNumberVal.textContent = currentDevice.deviceNumber || '-';
-      clientAccessoriesVal.textContent = currentDevice.accessories || '-';
-      clientLastVerifiedVal.textContent = currentDevice.lastVerifiedAt ? new Date(currentDevice.lastVerifiedAt).toLocaleString() : 'Never';
-      clientNextDueVal.textContent = currentDevice.nextDueAt ? new Date(currentDevice.nextDueAt).toLocaleDateString() : 'Pending Active';
-      
-      // Update badge
-      clientStatusBadge.className = 'badge';
-      if (currentDevice.status === 'active') {
-        clientStatusBadge.classList.add('badge-active');
-        clientStatusBadge.textContent = 'Active';
-      } else if (currentDevice.status === 'pending') {
-        clientStatusBadge.classList.add('badge-pending');
-        clientStatusBadge.textContent = 'Pending Verify';
-      } else if (currentDevice.status === 'unverified') {
-        clientStatusBadge.classList.add('badge-unverified');
-        clientStatusBadge.textContent = 'Unverified';
+      if (window.adminTestMode) {
+        clientDeviceHeader.textContent = 'หน้าทดสอบระบบ (Admin Test Mode)';
+        clientPositionVal.textContent = 'N/A';
+        clientDeviceNumberVal.textContent = 'TEST-001';
+        clientAccessoriesVal.textContent = 'None';
+        clientLastVerifiedVal.textContent = 'Never';
+        clientNextDueVal.textContent = 'Ready to test';
+        clientStatusBadge.className = 'badge badge-pending';
+        clientStatusBadge.textContent = 'Ready to test';
       } else {
-        clientStatusBadge.classList.add('badge-overdue');
-        clientStatusBadge.textContent = 'Overdue Check';
+        clientDeviceHeader.textContent = currentDevice.userName || currentDevice.name;
+        clientPositionVal.textContent = currentDevice.position || '-';
+        clientDeviceNumberVal.textContent = currentDevice.deviceNumber || '-';
+        clientAccessoriesVal.textContent = currentDevice.accessories || '-';
+        clientLastVerifiedVal.textContent = currentDevice.lastVerifiedAt ? new Date(currentDevice.lastVerifiedAt).toLocaleString() : 'Never';
+        clientNextDueVal.textContent = currentDevice.nextDueAt ? new Date(currentDevice.nextDueAt).toLocaleDateString() : 'Pending Active';
+        
+        // Update badge
+        clientStatusBadge.className = 'badge';
+        if (currentDevice.status === 'active') {
+          clientStatusBadge.classList.add('badge-active');
+          clientStatusBadge.textContent = 'Active';
+        } else if (currentDevice.status === 'pending') {
+          clientStatusBadge.classList.add('badge-pending');
+          clientStatusBadge.textContent = 'Pending Verify';
+        } else if (currentDevice.status === 'unverified') {
+          clientStatusBadge.classList.add('badge-unverified');
+          clientStatusBadge.textContent = 'Unverified';
+        } else {
+          clientStatusBadge.classList.add('badge-overdue');
+          clientStatusBadge.textContent = 'Overdue Check';
+        }
       }
     } else {
       // Device is not registered, show registration form/QR scanner
@@ -792,6 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnBackToAdmin.addEventListener('click', () => {
       clientView.classList.add('hidden');
       adminView.classList.remove('hidden');
+      window.adminTestMode = false;
       if (html5QrcodeScanner) {
         html5QrcodeScanner.clear().catch(err => console.error("Failed to clear scanner", err));
         html5QrcodeScanner = null;
@@ -799,6 +813,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }  // Tap orb to verify client presence
   btnVerifyPresence.addEventListener('click', async () => {
+    if (window.adminTestMode) {
+      showToast('Test Mode: Location check successful!');
+      const btn = btnVerifyPresence;
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = `<span class="orb-content"><svg class="orb-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>Success!</span>`;
+      btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      clientStatusBadge.className = 'badge badge-active';
+      clientStatusBadge.textContent = 'Active (Test)';
+      setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.style.background = '';
+      }, 3000);
+      return;
+    }
+
     const deviceId = localStorage.getItem('ios_device_id');
     if (!deviceId) return;
     const password = await requestActionPassword('ยืนยันอุปกรณ์');
@@ -1245,6 +1274,10 @@ document.addEventListener('DOMContentLoaded', () => {
         adminView.classList.add('hidden');
         clientView.classList.remove('hidden');
         btnToggleView.textContent = 'Switch to Admin View';
+        
+        // Force Test Mode to show Active button instead of Scanner
+        window.adminTestMode = true;
+        updateClientPortal();
       }
     });
   }
