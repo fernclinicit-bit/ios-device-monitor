@@ -20,8 +20,8 @@
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
 
-  --font-display: 'Outfit', sans-serif;
-  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-display: 'Noto Sans Thai', 'Outfit', 'Leelawadee UI', Tahoma, sans-serif;
+  --font-sans: 'Noto Sans Thai', 'Plus Jakarta Sans', 'Leelawadee UI', Tahoma, sans-serif;
 
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -704,7 +704,7 @@ header {
   border-radius: 8px !important;
 }
 .leaflet-popup-content {
-  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-family: var(--font-sans) !important;
   font-size: 0.82rem !important;
   line-height: 1.45 !important;
   margin: 12px 16px !important;

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asset Check-In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: var(--bg-dark); margin: 0; padding: 1rem;">
+  
+  <div class="background-effects">
+    <div class="glow-orb orb-purple"></div>
+  </div>
+
+  <div class="client-card glass-card" style="max-width: 400px; width: 100%; text-align: center;">
+    <header class="client-header">
+      <span class="badge-ios" style="background: var(--accent-purple); color: #fff;">ASSET CHECK-IN</span>
+      <h1 id="asset-name">Loading...</h1>
+      <p class="subtitle" id="asset-sn">Please wait</p>
+    </header>
+
+    <div class="verify-orb-container" id="checkin-container" style="display: none;">
+      <button id="btn-checkin" class="verify-orb-btn ripple" style="background: linear-gradient(135deg, var(--accent-purple), var(--accent-indigo)); box-shadow: 0 0 40px rgba(139, 92, 246, 0.4);">
+        <span class="orb-content">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="orb-icon">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          Check-In Asset
+        </span>
+      </button>
+    </div>
+
+    <div id="status-message" style="margin-top: 1.5rem; color: #fff; font-size: 1rem;"></div>
+  </div>
+
+  <div id="toast-notification" class="toast hidden"></div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const assetId = urlParams.get('id');
+    const btnCheckin = document.getElementById('btn-checkin');
+    const assetNameEl = document.getElementById('asset-name');
+    const assetSnEl = document.getElementById('asset-sn');
+    const statusEl = document.getElementById('status-message');
+    const container = document.getElementById('checkin-container');
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast-notification');
+      toast.textContent = msg;
+      toast.classList.remove('hidden');
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+      }, 3000);
+    }
+
+    if (!assetId) {
+      assetNameEl.textContent = 'Invalid Link';
+      assetSnEl.textContent = 'No Asset ID provided';
+    } else {
+      // Fetch asset details
+      fetch('/api/assets')
+        .then(res => res.json())
+        .then(data => {
+          const asset = data.assets.find(a => a.id === assetId);
+          if (asset) {
+            assetNameEl.textContent = asset.name;
+            assetSnEl.textContent = 'S/N: ' + (asset.serialNumber || '-');
+            container.style.display = 'block';
+          } else {
+            assetNameEl.textContent = 'Asset Not Found';
+            assetSnEl.textContent = 'This asset ID does not exist in the database.';
+          }
+        })
+        .catch(err => {
+          assetNameEl.textContent = 'Error Loading Asset';
+          assetSnEl.textContent = 'Please check your internet connection.';
+        });
+    }
+
+    btnCheckin.addEventListener('click', () => {
+      btnCheckin.disabled = true;
+      btnCheckin.style.opacity = '0.5';
+      statusEl.textContent = 'Checking in...';
+
+      fetch('/api/scan-asset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assetId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          showToast(data.error);
+          statusEl.textContent = 'Check-in failed.';
+          btnCheckin.disabled = false;
+          btnCheckin.style.opacity = '1';
+        } else {
+          showToast('Asset Checked-In Successfully!');
+          statusEl.innerHTML = '<span style="color: #10b981; font-weight: bold;">✔ Checked In Successfully</span><br><br>You can close this window.';
+          container.style.display = 'none';
+        }
+      })
+      .catch(err => {
+        showToast('Network error.');
+        statusEl.textContent = 'Network error during check-in.';
+        btnCheckin.disabled = false;
+        btnCheckin.style.opacity = '1';
+      });
+    });
+  </script>
+</body>
+</html>

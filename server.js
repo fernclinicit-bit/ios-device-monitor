@@ -19,7 +19,7 @@ function requireActionPassword(data, res) {
 }
 
 // Memory Cache to prevent API exhaustion and provide 0ms reads
-let dbInMemory = { devices: [], logs: [] };
+let dbInMemory = { devices: [], logs: [], assets: [] };
 
 // JSONBin cloud storage config
 const JSONBIN_API_KEY = process.env.JSONBIN_API_KEY;
@@ -120,7 +120,8 @@ function initDb(callback) {
     console.log('Detected JSONBin config. Fetching database from cloud...');
     fetchFromJsonBin()
       .then((data) => {
-        dbInMemory = data || { devices: [], logs: [] };
+        dbInMemory = data || { devices: [], logs: [], assets: [] };
+        if (!dbInMemory.assets) dbInMemory.assets = [];
         console.log('Database successfully loaded from JSONBin cloud!');
         callback();
       })
@@ -140,14 +141,15 @@ function loadLocalDb() {
   try {
     if (!fs.existsSync(DB_FILE)) {
       fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
-      fs.writeFileSync(DB_FILE, JSON.stringify({ devices: [], logs: [] }, null, 2));
+      fs.writeFileSync(DB_FILE, JSON.stringify({ devices: [], logs: [], assets: [] }, null, 2));
     }
     const data = fs.readFileSync(DB_FILE, 'utf8');
     dbInMemory = JSON.parse(data);
+    if (!dbInMemory.assets) dbInMemory.assets = [];
     console.log('Database successfully loaded from local file.');
   } catch (err) {
     console.error('Error reading local database:', err);
-    dbInMemory = { devices: [], logs: [] };
+    dbInMemory = { devices: [], logs: [], assets: [] };
   }
 }
 
@@ -516,6 +518,180 @@ const server = http.createServer((req, res) => {
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: 'Device details updated successfully.' }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid payload' }));
+      }
+    });
+    return;
+  }
+
+  // --- Asset Management APIs ---
+  
+  // GET /api/assets - Get all assets
+  if (req.method === 'GET' && pathname === '/api/assets') {
+    const db = readDb();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      assets: db.assets || [], 
+      serverIp: getLocalIpAddress()
+    }));
+    return;
+  }
+
+  // POST /api/register-asset - Register a new asset
+  if (req.method === 'POST' && pathname === '/api/register-asset') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const { name, category, serialNumber, location, type } = data;
+
+        if (!name || name.trim() === '') {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Asset name is required.' }));
+          return;
+        }
+
+        const db = readDb();
+        const assetId = 'ast-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
+
+        const newAsset = {
+          id: assetId,
+          name: name.trim(),
+          category: (category || '').trim(),
+          serialNumber: (serialNumber || '').trim(),
+          location: (location || '').trim(),
+          type: type || 'office',
+          registeredAt: new Date().toISOString(),
+          lastScannedAt: ''
+        };
+
+        db.assets.push(newAsset);
+        addLog(db, assetId, newAsset.name, 'Registered new asset');
+        writeDb(db);
+
+        console.log(`Asset Registered: ${newAsset.name} (ID: ${assetId})`);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Asset registered successfully', asset: newAsset }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid payload' }));
+      }
+    });
+    return;
+  }
+
+  // POST /api/edit-asset - Edit asset details
+  if (req.method === 'POST' && pathname === '/api/edit-asset') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const { assetId, name, category, serialNumber, location, type } = data;
+
+        if (!assetId || !name || name.trim() === '') {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Asset ID and name are required.' }));
+          return;
+        }
+
+        const db = readDb();
+        const index = db.assets.findIndex(a => a.id === assetId);
+        if (index === -1) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Asset not found.' }));
+          return;
+        }
+
+        db.assets[index].name = name.trim();
+        db.assets[index].category = (category || '').trim();
+        db.assets[index].serialNumber = (serialNumber || '').trim();
+        db.assets[index].location = (location || '').trim();
+        db.assets[index].type = type || db.assets[index].type;
+
+        addLog(db, assetId, name.trim(), 'Edited asset details');
+        writeDb(db);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Asset updated successfully.' }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid payload' }));
+      }
+    });
+    return;
+  }
+
+  // POST /api/delete-asset - Remove asset
+  if (req.method === 'POST' && pathname === '/api/delete-asset') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const { assetId } = data;
+
+        if (!assetId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Asset ID is required.' }));
+          return;
+        }
+
+        const db = readDb();
+        const asset = db.assets.find(a => a.id === assetId);
+        if (!asset) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Asset not found.' }));
+          return;
+        }
+
+        db.assets = db.assets.filter(a => a.id !== assetId);
+        addLog(db, assetId, asset.name, 'Removed asset from system');
+        writeDb(db);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Asset removed successfully.' }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid payload' }));
+      }
+    });
+    return;
+  }
+
+  // POST /api/scan-asset - Scan and check-in asset
+  if (req.method === 'POST' && pathname === '/api/scan-asset') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const { assetId } = data;
+
+        if (!assetId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Asset ID is required.' }));
+          return;
+        }
+
+        const db = readDb();
+        const index = db.assets.findIndex(a => a.id === assetId);
+        if (index === -1) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Asset not found.' }));
+          return;
+        }
+
+        db.assets[index].lastScannedAt = new Date().toISOString();
+        addLog(db, assetId, db.assets[index].name, 'Asset Scanned via QR');
+        writeDb(db);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Asset scan recorded successfully.', asset: db.assets[index] }));
       } catch (err) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Invalid payload' }));

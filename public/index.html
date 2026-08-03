@@ -12,6 +12,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- HTML2PDF Reporting Integration -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- QRCode.js Integration -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -40,6 +42,13 @@
         <p class="subtitle">Monthly verification logs & network detection dashboard</p>
       </header>
 
+      <!-- MAIN NAVIGATION TABS -->
+      <div class="nav-tabs" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+        <button id="nav-devices-btn" class="btn btn-primary" style="flex: 1; padding: 0.75rem; font-size: 1.05rem;">📱 ระบบติดตามอุปกรณ์มือถือ (Devices)</button>
+        <button id="nav-assets-btn" class="btn btn-secondary" style="flex: 1; padding: 0.75rem; font-size: 1.05rem;">🖨️ ระบบนับทรัพย์สิน (Assets)</button>
+      </div>
+
+      <div id="devices-section-content">
       <!-- STATS OVERVIEW -->
       <section class="stats-grid">
         <div class="stat-card glass-card">
@@ -198,6 +207,119 @@
           </div>
         </div>
       </section>
+      </div> <!-- End devices-section-content -->
+
+      <!-- ==================== ASSETS SECTION ==================== -->
+      <div id="assets-section-content" class="hidden">
+        <section class="stats-grid">
+          <div class="stat-card glass-card">
+            <span class="stat-title">Total Assets</span>
+            <span id="stat-total-assets" class="stat-value">0</span>
+          </div>
+          <div class="stat-card glass-card">
+            <span class="stat-title">Recently Scanned</span>
+            <span id="stat-scanned-assets" class="stat-value success-text">0</span>
+          </div>
+        </section>
+
+        <section class="glass-card main-card">
+          <div class="card-header">
+            <h2>Company Assets</h2>
+            <button id="btn-show-add-asset" class="btn btn-secondary">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Asset
+            </button>
+          </div>
+
+          <!-- ADD ASSET DRAWER -->
+          <div id="add-asset-drawer" class="drawer hidden">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div class="input-field">
+                <label for="new-asset-name">ชื่อทรัพย์สิน (Asset Name)</label>
+                <input type="text" id="new-asset-name" placeholder="เช่น MacBook Pro, เครื่องพิมพ์">
+              </div>
+              <div class="input-field">
+                <label for="new-asset-category">หมวดหมู่ (Category)</label>
+                <input type="text" id="new-asset-category" placeholder="เช่น ไอที, เฟอร์นิเจอร์">
+              </div>
+              <div class="input-field">
+                <label for="new-asset-sn">หมายเลขซีเรียล (S/N)</label>
+                <input type="text" id="new-asset-sn" placeholder="Serial Number / รหัสครุภัณฑ์">
+              </div>
+              <div class="input-field">
+                <label for="new-asset-location">สถานที่ตั้ง (Location)</label>
+                <input type="text" id="new-asset-location" placeholder="เช่น ห้องประชุม 1, ชั้น 2">
+              </div>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: flex-end;">
+              <button id="btn-submit-asset" class="btn btn-primary" style="height: 42px; width: 100%;">Save Asset</button>
+            </div>
+          </div>
+
+          <!-- EDIT ASSET DRAWER -->
+          <div id="edit-asset-drawer" class="drawer hidden">
+            <input type="hidden" id="edit-asset-id">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div class="input-field">
+                <label for="edit-asset-name">ชื่อทรัพย์สิน (Asset Name)</label>
+                <input type="text" id="edit-asset-name" placeholder="เช่น MacBook Pro, เครื่องพิมพ์">
+              </div>
+              <div class="input-field">
+                <label for="edit-asset-category">หมวดหมู่ (Category)</label>
+                <input type="text" id="edit-asset-category" placeholder="เช่น ไอที, เฟอร์นิเจอร์">
+              </div>
+              <div class="input-field">
+                <label for="edit-asset-sn">หมายเลขซีเรียล (S/N)</label>
+                <input type="text" id="edit-asset-sn" placeholder="Serial Number / รหัสครุภัณฑ์">
+              </div>
+              <div class="input-field">
+                <label for="edit-asset-location">สถานที่ตั้ง (Location)</label>
+                <input type="text" id="edit-asset-location" placeholder="เช่น ห้องประชุม 1, ชั้น 2">
+              </div>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: flex-end;">
+              <button id="btn-cancel-edit-asset" class="btn btn-secondary" style="height: 42px; flex: 1;">Cancel</button>
+              <button id="btn-save-edit-asset" class="btn btn-primary" style="height: 42px; flex: 2;">Save Changes</button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="devices-table">
+              <thead>
+                <tr>
+                  <th>Asset Name</th>
+                  <th>Category</th>
+                  <th>S/N</th>
+                  <th>Location</th>
+                  <th>Last Scanned</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="assets-list-tbody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+            <div id="empty-assets-msg" class="empty-state hidden">
+              <p>No assets currently tracked. Add a new asset to get started.</p>
+            </div>
+          </div>
+        </section>
+      </div> <!-- End assets-section-content -->
+
+      <!-- QR CODE MODAL OVERLAY -->
+      <div id="qr-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+        <div style="background: #fff; padding: 2rem; border-radius: 12px; text-align: center; color: #000; max-width: 400px; width: 90%;">
+          <h2 id="qr-modal-title" style="margin-bottom: 0.5rem; font-family: 'Plus Jakarta Sans', sans-serif;">Asset Name</h2>
+          <p id="qr-modal-sn" style="color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">S/N: -</p>
+          <div id="qrcode-container" style="display: flex; justify-content: center; margin-bottom: 1.5rem;"></div>
+          <p style="font-size: 0.8rem; color: #444; margin-bottom: 1.5rem;">Scan this QR with a mobile phone to check-in this asset.</p>
+          <button id="btn-close-qr-modal" style="background: #e2e8f0; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%;">Close</button>
+        </div>
+      </div>
+
 
       <!-- SYSTEM LOGS -->
       <section class="glass-card logs-card">

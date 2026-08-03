@@ -40,6 +40,42 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusFilter = document.getElementById('status-filter');
   const btnExportPdf = document.getElementById('btn-export-pdf');
   
+  // Asset Nav Tabs
+  const navDevicesBtn = document.getElementById('nav-devices-btn');
+  const navAssetsBtn = document.getElementById('nav-assets-btn');
+  const devicesSection = document.getElementById('devices-section-content');
+  const assetsSection = document.getElementById('assets-section-content');
+
+  // Asset DOM
+  const statTotalAssets = document.getElementById('stat-total-assets');
+  const statScannedAssets = document.getElementById('stat-scanned-assets');
+  const assetsListTbody = document.getElementById('assets-list-tbody');
+  const emptyAssetsMsg = document.getElementById('empty-assets-msg');
+  const btnShowAddAsset = document.getElementById('btn-show-add-asset');
+  
+  const addAssetDrawer = document.getElementById('add-asset-drawer');
+  const newAssetName = document.getElementById('new-asset-name');
+  const newAssetCategory = document.getElementById('new-asset-category');
+  const newAssetSn = document.getElementById('new-asset-sn');
+  const newAssetLocation = document.getElementById('new-asset-location');
+  const btnSubmitAsset = document.getElementById('btn-submit-asset');
+
+  const editAssetDrawer = document.getElementById('edit-asset-drawer');
+  const editAssetId = document.getElementById('edit-asset-id');
+  const editAssetName = document.getElementById('edit-asset-name');
+  const editAssetCategory = document.getElementById('edit-asset-category');
+  const editAssetSn = document.getElementById('edit-asset-sn');
+  const editAssetLocation = document.getElementById('edit-asset-location');
+  const btnSaveEditAsset = document.getElementById('btn-save-edit-asset');
+  const btnCancelEditAsset = document.getElementById('btn-cancel-edit-asset');
+
+  // QR Modal
+  const qrModal = document.getElementById('qr-modal');
+  const qrModalTitle = document.getElementById('qr-modal-title');
+  const qrModalSn = document.getElementById('qr-modal-sn');
+  const qrcodeContainer = document.getElementById('qrcode-container');
+  const btnCloseQrModal = document.getElementById('btn-close-qr-modal');
+  
   // Client DOM
   const clientDeviceHeader = document.getElementById('client-device-header');
   const clientRegistrationSection = document.getElementById('client-registration-section');
@@ -59,8 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- App State ---
   let devices = [];
+  let assets = [];
   let logs = [];
   let currentFilteredDevices = [];
+  let currentFilteredAssets = [];
   let serverIpAddress = 'localhost';
   let currentActiveView = 'admin'; // 'admin' or 'client'
   let mapInstance = null;
@@ -177,13 +215,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Data Fetching & Sync ---
   async function loadData() {
     try {
-      const res = await fetch('/api/devices');
-      const data = await res.json();
-      devices = data.devices || [];
-      logs = data.logs || [];
-      serverIpAddress = data.serverIp || 'localhost';
+      const [devicesRes, assetsRes] = await Promise.all([
+        fetch('/api/devices'),
+        fetch('/api/assets')
+      ]);
+      const devicesData = await devicesRes.json();
+      const assetsData = await assetsRes.json();
+      
+      devices = devicesData.devices || [];
+      logs = devicesData.logs || [];
+      serverIpAddress = devicesData.serverIp || 'localhost';
+      
+      assets = assetsData.assets || [];
       
       updateAdminDashboard();
+      updateAssetsDashboard();
       updateClientPortal();
     } catch (err) {
       console.error('Error loading data:', err);
@@ -517,6 +563,107 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update map view with current device markers
     updateAdminMap(filteredDevices);
+  }
+
+  // --- Asset Dashboard Logic ---
+  function updateAssetsDashboard() {
+    statTotalAssets.textContent = assets.length;
+    
+    // Calculate recently scanned (within last 7 days)
+    const now = new Date();
+    const recent = assets.filter(a => {
+      if (!a.lastScannedAt) return false;
+      const diffTime = Math.abs(now - new Date(a.lastScannedAt));
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      return diffDays <= 7;
+    }).length;
+    statScannedAssets.textContent = recent;
+
+    assetsListTbody.innerHTML = '';
+    if (assets.length === 0) {
+      emptyAssetsMsg.classList.remove('hidden');
+    } else {
+      emptyAssetsMsg.classList.add('hidden');
+      assets.forEach(a => {
+        const tr = document.createElement('tr');
+        
+        const lastScannedFormatted = a.lastScannedAt ? new Date(a.lastScannedAt).toLocaleString() : 'Never';
+        
+        // QR URL for printing/scanning (we'll implement scanner.html later)
+        let qrUrl = '';
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          qrUrl = 'http://' + serverIpAddress + ':3000/scanner.html?id=' + a.id;
+        } else {
+          qrUrl = window.location.origin + '/scanner.html?id=' + a.id;
+        }
+
+        tr.innerHTML = `
+          <td>
+            <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">${escapeHtml(a.name)}</div>
+          </td>
+          <td>${escapeHtml(a.category || '-')}</td>
+          <td>${escapeHtml(a.serialNumber || '-')}</td>
+          <td>${escapeHtml(a.location || '-')}</td>
+          <td>${lastScannedFormatted}</td>
+          <td>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button class="btn btn-secondary btn-qr-asset" data-id="${a.id}" data-url="${qrUrl}" data-name="${escapeHtml(a.name)}" data-sn="${escapeHtml(a.serialNumber)}" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;">
+                🖨️ QR Code
+              </button>
+              <button class="btn btn-secondary btn-edit-asset" data-id="${a.id}" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; background: var(--accent-purple); color: #fff; border-color: var(--accent-purple);">
+                Edit
+              </button>
+              <button class="btn-danger-sm btn-delete-asset" data-id="${a.id}">
+                Delete
+              </button>
+            </div>
+          </td>
+        `;
+        assetsListTbody.appendChild(tr);
+      });
+    }
+
+    // Setup asset action button listeners
+    document.querySelectorAll('.btn-qr-asset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        qrModalTitle.textContent = btn.dataset.name;
+        qrModalSn.textContent = 'S/N: ' + btn.dataset.sn;
+        qrcodeContainer.innerHTML = '';
+        new QRCode(qrcodeContainer, {
+          text: btn.dataset.url,
+          width: 200,
+          height: 200,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        qrModal.classList.remove('hidden');
+      });
+    });
+
+    document.querySelectorAll('.btn-edit-asset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const a = assets.find(x => x.id === btn.dataset.id);
+        if (a) {
+          editAssetId.value = a.id;
+          editAssetName.value = a.name || '';
+          editAssetCategory.value = a.category || '';
+          editAssetSn.value = a.serialNumber || '';
+          editAssetLocation.value = a.location || '';
+          
+          editAssetDrawer.classList.remove('hidden');
+          if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
+          editAssetDrawer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    });
+
+    document.querySelectorAll('.btn-delete-asset').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const password = await requestActionPassword('ลบอุปกรณ์ทรัพย์สิน');
+        if (password) deleteAsset(btn.dataset.id, password);
+      });
+    });
   }
 
   // --- Client View Logic ---
@@ -992,6 +1139,149 @@ document.addEventListener('DOMContentLoaded', () => {
   // Bind Export PDF Click Listener
   if (btnExportPdf) {
     btnExportPdf.addEventListener('click', exportToPdf);
+  }
+
+  // --- Asset Management Event Listeners ---
+  
+  // Tab Switching
+  if (navDevicesBtn && navAssetsBtn) {
+    navDevicesBtn.addEventListener('click', () => {
+      navDevicesBtn.classList.replace('btn-secondary', 'btn-primary');
+      navAssetsBtn.classList.replace('btn-primary', 'btn-secondary');
+      devicesSection.classList.remove('hidden');
+      assetsSection.classList.add('hidden');
+    });
+    navAssetsBtn.addEventListener('click', () => {
+      navAssetsBtn.classList.replace('btn-secondary', 'btn-primary');
+      navDevicesBtn.classList.replace('btn-primary', 'btn-secondary');
+      assetsSection.classList.remove('hidden');
+      devicesSection.classList.add('hidden');
+    });
+  }
+
+  // Drawers
+  if (btnShowAddAsset) {
+    btnShowAddAsset.addEventListener('click', () => {
+      addAssetDrawer.classList.toggle('hidden');
+      if (editAssetDrawer) editAssetDrawer.classList.add('hidden');
+    });
+  }
+
+  if (btnCancelEditAsset) {
+    btnCancelEditAsset.addEventListener('click', () => {
+      editAssetDrawer.classList.add('hidden');
+    });
+  }
+
+  if (btnCloseQrModal) {
+    btnCloseQrModal.addEventListener('click', () => {
+      qrModal.classList.add('hidden');
+    });
+  }
+
+  // Add Asset API
+  if (btnSubmitAsset) {
+    btnSubmitAsset.addEventListener('click', async () => {
+      const name = newAssetName.value.trim();
+      if (!name) {
+        showToast('Please enter an Asset Name');
+        return;
+      }
+      
+      const payload = {
+        name,
+        category: newAssetCategory.value.trim(),
+        serialNumber: newAssetSn.value.trim(),
+        location: newAssetLocation.value.trim(),
+        type: 'office'
+      };
+
+      try {
+        const res = await fetch('/api/register-asset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          showToast('Asset added successfully!');
+          newAssetName.value = '';
+          newAssetCategory.value = '';
+          newAssetSn.value = '';
+          newAssetLocation.value = '';
+          addAssetDrawer.classList.add('hidden');
+          loadData();
+        } else {
+          showToast('Error adding asset.');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Network error.');
+      }
+    });
+  }
+
+  // Edit Asset API
+  if (btnSaveEditAsset) {
+    btnSaveEditAsset.addEventListener('click', async () => {
+      const assetId = editAssetId.value;
+      const name = editAssetName.value.trim();
+      
+      if (!name) {
+        showToast('Please enter an Asset Name');
+        return;
+      }
+
+      const payload = {
+        assetId,
+        name,
+        category: editAssetCategory.value.trim(),
+        serialNumber: editAssetSn.value.trim(),
+        location: editAssetLocation.value.trim()
+      };
+
+      try {
+        const res = await fetch('/api/edit-asset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          showToast('Asset updated successfully!');
+          editAssetDrawer.classList.add('hidden');
+          loadData();
+        } else {
+          showToast('Error updating asset.');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Network error.');
+      }
+    });
+  }
+
+  // Delete Asset API
+  async function deleteAsset(assetId, password) {
+    if (password !== '1234') {
+      showToast('Incorrect Admin Password!');
+      return;
+    }
+    
+    try {
+      const res = await fetch('/api/delete-asset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assetId })
+      });
+      if (res.ok) {
+        showToast('Asset deleted successfully!');
+        loadData();
+      } else {
+        showToast('Failed to delete asset.');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Network error deleting asset.');
+    }
   }
 
   // Load data immediately on page load
