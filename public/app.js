@@ -708,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.removeItem('ios_device_id');
       clientRegistrationSection.classList.remove('hidden');
       clientVerificationSection.classList.add('hidden');
-      clientDeviceHeader.textContent = isIOS ? 'New iOS Device' : 'New Client Device';
+      clientDeviceHeader.textContent = isIOS ? 'อุปกรณ์ iOS ใหม่ (New iOS Device)' : 'อุปกรณ์ใหม่ (New Device)';
     }
   }
 
