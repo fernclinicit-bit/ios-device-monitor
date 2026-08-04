@@ -41,6 +41,7 @@ body {
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 1024px;
 }
 
 /* Background Gradients */
@@ -664,26 +665,7 @@ header {
   background: rgba(255,255,255,0.25);
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-  .form-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .form-row button {
-    margin-top: 0.5rem;
-  }
-  .app-container {
-    padding: 1rem 0.75rem;
-  }
-  .devices-table th, .devices-table td {
-    padding: 0.75rem 0.5rem;
-  }
-}
+/* Responsive adjustments (Disabled to enforce desktop view on mobile) */
 
 @keyframes spin {
   from { transform: rotate(0deg); }
