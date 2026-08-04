@@ -267,40 +267,47 @@
                 <label for="new-asset-sn">หมายเลขซีเรียล (S/N)</label>
                 <input type="text" id="new-asset-sn" placeholder="Serial Number / รหัสครุภัณฑ์">
               </div>
-              <div class="input-field">
+              <div class="input-field" style="grid-column: span 2;">
                 <label for="new-asset-location">สถานที่ตั้ง (Location)</label>
                 <input type="text" id="new-asset-location" placeholder="เช่น ห้องประชุม 1, ชั้น 2">
               </div>
+              <div class="input-field" style="grid-column: span 2;">
+                <label for="new-asset-image">แนบรูปภาพทรัพย์สิน (Asset Image) - แนะนำแนวนอน</label>
+                <input type="file" id="new-asset-image" accept="image/*" style="padding: 0.5rem; background: rgba(0,0,0,0.1); border: 1px dashed rgba(255,255,255,0.2); border-radius: 8px;">
+              </div>
             </div>
-            <div style="display: flex; gap: 1rem; align-items: flex-end;">
-              <button id="btn-submit-asset" class="btn btn-primary" style="height: 42px; width: 100%;">Save Asset</button>
-            </div>
+            <button id="btn-submit-asset" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Save Asset</button>
           </div>
 
           <!-- EDIT ASSET DRAWER -->
           <div id="edit-asset-drawer" class="drawer hidden">
+            <h3 style="margin-top:0; margin-bottom: 1rem;">Edit Asset</h3>
             <input type="hidden" id="edit-asset-id">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
               <div class="input-field">
                 <label for="edit-asset-name">ชื่อทรัพย์สิน (Asset Name)</label>
-                <input type="text" id="edit-asset-name" placeholder="เช่น MacBook Pro, เครื่องพิมพ์">
+                <input type="text" id="edit-asset-name">
               </div>
               <div class="input-field">
                 <label for="edit-asset-category">หมวดหมู่ (Category)</label>
-                <input type="text" id="edit-asset-category" placeholder="เช่น ไอที, เฟอร์นิเจอร์">
+                <input type="text" id="edit-asset-category">
               </div>
               <div class="input-field">
                 <label for="edit-asset-sn">หมายเลขซีเรียล (S/N)</label>
-                <input type="text" id="edit-asset-sn" placeholder="Serial Number / รหัสครุภัณฑ์">
+                <input type="text" id="edit-asset-sn">
               </div>
               <div class="input-field">
                 <label for="edit-asset-location">สถานที่ตั้ง (Location)</label>
-                <input type="text" id="edit-asset-location" placeholder="เช่น ห้องประชุม 1, ชั้น 2">
+                <input type="text" id="edit-asset-location">
+              </div>
+              <div class="input-field" style="grid-column: span 2;">
+                <label for="edit-asset-image">แนบรูปภาพใหม่ (อัปโหลดเพื่อแทนที่รูปเดิม)</label>
+                <input type="file" id="edit-asset-image" accept="image/*" style="padding: 0.5rem; background: rgba(0,0,0,0.1); border: 1px dashed rgba(255,255,255,0.2); border-radius: 8px;">
               </div>
             </div>
-            <div style="display: flex; gap: 1rem; align-items: flex-end;">
-              <button id="btn-cancel-edit-asset" class="btn btn-secondary" style="height: 42px; flex: 1;">Cancel</button>
-              <button id="btn-save-edit-asset" class="btn btn-primary" style="height: 42px; flex: 2;">Save Changes</button>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+              <button id="btn-save-edit-asset" class="btn btn-primary" style="flex: 1;">Update Asset</button>
+              <button id="btn-cancel-edit-asset" class="btn btn-secondary" style="flex: 1;">Cancel</button>
             </div>
           </div>
 
@@ -308,12 +315,9 @@
             <table class="devices-table">
               <thead>
                 <tr>
-                  <th>Asset Name</th>
-                  <th>Category</th>
-                  <th>S/N</th>
-                  <th>Location</th>
-                  <th>Last Scanned</th>
-                  <th>Actions</th>
+                  <th>รายละเอียดทรัพย์สิน (Asset Details)</th>
+                  <th>ตรวจสอบล่าสุด (Last Scanned)</th>
+                  <th style="min-width: 120px;">จัดการ (Actions)</th>
                 </tr>
               </thead>
               <tbody id="assets-list-tbody">

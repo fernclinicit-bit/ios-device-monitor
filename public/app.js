@@ -604,72 +604,115 @@ document.addEventListener('DOMContentLoaded', () => {
           qrUrl = window.location.origin + '/scanner.html?id=' + a.id;
         }
 
+        const snDisplay = a.sn || a.serialNumber || '-';
+        const imgHtml = a.image 
+          ? `<img src="${a.image}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">` 
+          : `<div style="width: 120px; height: 120px; background: rgba(0,0,0,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 0.8rem; border: 1px dashed rgba(255,255,255,0.1);">No Image</div>`;
+
         tr.innerHTML = `
           <td>
-            <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">${escapeHtml(a.name)}</div>
+            <div style="font-weight: 600; font-size: 1.15rem; color: #fff; margin-bottom: 0.25rem;">${escapeHtml(a.name)}</div>
+            <div style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 0.75rem; line-height: 1.4;">
+              <strong>Category:</strong> ${escapeHtml(a.category || '-')}<br>
+              <strong>S/N:</strong> ${escapeHtml(snDisplay)}<br>
+              <strong>Location:</strong> ${escapeHtml(a.location || '-')}
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 0.5rem;">
+              ${imgHtml}
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                <div id="inline-qr-${a.id}" style="width: 120px; height: 120px; background: white; padding: 10px; border-radius: 8px;"></div>
+                <span style="font-size: 0.75rem; color: #6b7280;">ID: ${a.id.substring(4)}</span>
+              </div>
+            </div>
           </td>
-          <td>${escapeHtml(a.category || '-')}</td>
-          <td>${escapeHtml(a.serialNumber || '-')}</td>
-          <td>${escapeHtml(a.location || '-')}</td>
-          <td>${lastScannedFormatted}</td>
-          <td>
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-              <button class="btn btn-secondary btn-qr-asset" data-id="${a.id}" data-url="${qrUrl}" data-name="${escapeHtml(a.name)}" data-sn="${escapeHtml(a.serialNumber)}" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;">
-                🖨️ QR Code
-              </button>
-              <button class="btn btn-secondary btn-edit-asset" data-id="${a.id}" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; background: var(--accent-purple); color: #fff; border-color: var(--accent-purple);">
-                Edit
-              </button>
-              <button class="btn-danger-sm btn-delete-asset" data-id="${a.id}">
-                Delete
-              </button>
+          <td style="vertical-align: top; padding-top: 1rem;">
+            <div class="status-cell">
+              <span class="status-indicator ${a.lastScannedAt ? 'active' : 'unverified'}"></span>
+              ${lastScannedFormatted}
+            </div>
+          </td>
+          <td style="vertical-align: top; padding-top: 1rem;">
+            <div class="action-buttons">
+              <button class="btn-action edit" onclick="openEditAssetModal('${a.id}')" title="Edit">✏️</button>
+              <button class="btn-action delete" onclick="confirmDeleteAsset('${a.id}')" title="Delete">🗑️</button>
             </div>
           </td>
         `;
         assetsListTbody.appendChild(tr);
+
+        // Render QR Code inline after appending
+        setTimeout(() => {
+          const qrContainer = document.getElementById(`inline-qr-${a.id}`);
+          if (qrContainer) {
+            new QRCode(qrContainer, {
+              text: qrUrl,
+              width: 100,
+              height: 100,
+              colorDark : "#000000",
+              colorLight : "#ffffff",
+              correctLevel : QRCode.CorrectLevel.L
+            });
+          }
+        }, 50);
       });
     }
 
-    // Setup asset action button listeners
-    document.querySelectorAll('.btn-qr-asset').forEach(btn => {
-      btn.addEventListener('click', () => {
-        qrModalTitle.textContent = btn.dataset.name;
-        qrModalSn.textContent = 'S/N: ' + btn.dataset.sn;
-        qrcodeContainer.innerHTML = '';
-        new QRCode(qrcodeContainer, {
-          text: btn.dataset.url,
-          width: 200,
-          height: 200,
-          colorDark: "#000000",
-          colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.M
-        });
-        qrModal.classList.remove('hidden');
-      });
-    });
+    window.confirmDeleteAsset = async (id) => {
+      const password = await requestActionPassword('ลบอุปกรณ์ทรัพย์สิน');
+      if (password) deleteAsset(id, password);
+    };
+    window.openEditAssetModal = (id) => {
+      const asset = assets.find(a => a.id === id);
+      if (asset) {
+        document.getElementById('edit-asset-id').value = asset.id;
+        document.getElementById('edit-asset-name').value = asset.name;
+        document.getElementById('edit-asset-category').value = asset.category || '';
+        document.getElementById('edit-asset-sn').value = asset.sn || asset.serialNumber || '';
+        document.getElementById('edit-asset-location').value = asset.location || '';
+        document.getElementById('edit-asset-image').value = ''; // Reset file input
+        editAssetDrawer.classList.remove('hidden');
+        if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
+        if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
+      }
+    };
+  }
 
-    document.querySelectorAll('.btn-edit-asset').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const a = assets.find(x => x.id === btn.dataset.id);
-        if (a) {
-          editAssetId.value = a.id;
-          editAssetName.value = a.name || '';
-          editAssetCategory.value = a.category || '';
-          editAssetSn.value = a.serialNumber || '';
-          editAssetLocation.value = a.location || '';
-          
-          editAssetDrawer.classList.remove('hidden');
-          if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
-          editAssetDrawer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      });
-    });
+  // --- Utility: Image Compression ---
+  function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.6) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = event => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
 
-    document.querySelectorAll('.btn-delete-asset').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const password = await requestActionPassword('ลบอุปกรณ์ทรัพย์สิน');
-        if (password) deleteAsset(btn.dataset.id, password);
-      });
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height *= maxWidth / width));
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width *= maxHeight / height));
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Get compressed base64 string
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = error => reject(error);
+      };
+      reader.onerror = error => reject(error);
     });
   }
 
@@ -1408,13 +1451,27 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Please enter an Asset Name');
         return;
       }
+      let base64Image = null;
+      const imageFile = document.getElementById('new-asset-image').files[0];
+      if (imageFile) {
+        try {
+          btnSubmitAsset.textContent = 'Processing Image...';
+          base64Image = await compressImage(imageFile);
+        } catch (e) {
+          console.error("Image compression failed", e);
+        }
+      }
       
+      btnSubmitAsset.textContent = 'Saving...';
+      btnSubmitAsset.disabled = true;
+
       const payload = {
         name,
         category: newAssetCategory.value.trim(),
         serialNumber: newAssetSn.value.trim(),
         location: newAssetLocation.value.trim(),
-        type: 'office'
+        type: 'office',
+        image: base64Image
       };
 
       try {
@@ -1429,6 +1486,7 @@ document.addEventListener('DOMContentLoaded', () => {
           newAssetCategory.value = '';
           newAssetSn.value = '';
           newAssetLocation.value = '';
+          document.getElementById('new-asset-image').value = '';
           addAssetDrawer.classList.add('hidden');
           loadData();
         } else {
@@ -1437,6 +1495,9 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         console.error(err);
         showToast('Network error.');
+      } finally {
+        btnSubmitAsset.textContent = 'Save Asset';
+        btnSubmitAsset.disabled = false;
       }
     });
   }
@@ -1451,13 +1512,27 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Please enter an Asset Name');
         return;
       }
+      let base64Image = undefined;
+      const imageFile = document.getElementById('edit-asset-image').files[0];
+      if (imageFile) {
+        try {
+          btnSaveEditAsset.textContent = 'Processing Image...';
+          base64Image = await compressImage(imageFile);
+        } catch (e) {
+          console.error("Image compression failed", e);
+        }
+      }
+
+      btnSaveEditAsset.textContent = 'Saving...';
+      btnSaveEditAsset.disabled = true;
 
       const payload = {
         assetId,
         name,
         category: editAssetCategory.value.trim(),
         serialNumber: editAssetSn.value.trim(),
-        location: editAssetLocation.value.trim()
+        location: editAssetLocation.value.trim(),
+        image: base64Image
       };
 
       try {
@@ -1468,14 +1543,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (res.ok) {
           showToast('Asset updated successfully!');
+          btnSaveEditAsset.textContent = 'Update Asset';
+          btnSaveEditAsset.disabled = false;
           editAssetDrawer.classList.add('hidden');
           loadData();
         } else {
           showToast('Error updating asset.');
         }
+        }
       } catch (err) {
         console.error(err);
         showToast('Network error.');
+        btnSaveEditAsset.textContent = 'Update Asset';
+        btnSaveEditAsset.disabled = false;
       }
     });
   }

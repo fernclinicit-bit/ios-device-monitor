@@ -546,7 +546,7 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
-        const { name, category, serialNumber, location, type } = data;
+        const { name, category, serialNumber, location, type, image } = data;
 
         if (!name || name.trim() === '') {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -561,11 +561,12 @@ const server = http.createServer((req, res) => {
           id: assetId,
           name: name.trim(),
           category: (category || '').trim(),
-          serialNumber: (serialNumber || '').trim(),
+          sn: (serialNumber || '').trim(),
           location: (location || '').trim(),
-          type: type || 'office',
+          type: type || 'custom',
+          image: image || null,
           registeredAt: new Date().toISOString(),
-          lastScannedAt: ''
+          lastScannedAt: null
         };
 
         db.assets.push(newAsset);
@@ -591,7 +592,7 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
-        const { assetId, name, category, serialNumber, location, type } = data;
+        const { assetId, name, category, serialNumber, location, type, image } = data;
 
         if (!assetId || !name || name.trim() === '') {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -609,9 +610,14 @@ const server = http.createServer((req, res) => {
 
         db.assets[index].name = name.trim();
         db.assets[index].category = (category || '').trim();
-        db.assets[index].serialNumber = (serialNumber || '').trim();
+        db.assets[index].sn = (serialNumber || '').trim();
         db.assets[index].location = (location || '').trim();
-        db.assets[index].type = type || db.assets[index].type;
+        db.assets[index].type = type || db.assets[index].type || 'custom';
+        
+        // Only update image if it's provided in the payload (so we don't wipe it out if omitted)
+        if (image !== undefined) {
+          db.assets[index].image = image;
+        }
 
         addLog(db, assetId, name.trim(), 'Edited asset details');
         writeDb(db);
