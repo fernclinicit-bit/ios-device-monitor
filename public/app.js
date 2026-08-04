@@ -1567,10 +1567,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Delete Asset API
   async function deleteAsset(assetId, password) {
-    if (password !== '1234') {
-      showToast('Incorrect Admin Password!');
-      return;
-    }
     
     try {
       const res = await fetch('/api/delete-asset', {
