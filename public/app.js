@@ -606,8 +606,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const snDisplay = a.sn || a.serialNumber || '-';
         const imgHtml = a.image 
-          ? `<img src="${a.image}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">` 
-          : `<div style="width: 120px; height: 120px; background: rgba(0,0,0,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6b7280; font-size: 0.8rem; border: 1px dashed rgba(255,255,255,0.1);">No Image</div>`;
+          ? `<div style="width: 90px; height: 120px; padding: 6px 6px 16px 6px; background: #fff; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); display: inline-block; transform: rotate(-2deg);">
+               <img src="${a.image}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 2px;">
+             </div>` 
+          : `<div style="width: 90px; height: 120px; background: rgba(0,0,0,0.2); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; color: #6b7280; font-size: 0.8rem; border: 1px dashed rgba(255,255,255,0.1);">No Image</div>`;
 
         tr.innerHTML = `
           <td>
@@ -1355,7 +1357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (adminHtml5QrcodeScanner) return; // Already initialized
     adminHtml5QrcodeScanner = new Html5QrcodeScanner(
       "admin-qr-reader", 
-      { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, 
+      { fps: 10, qrbox: { width: 220, height: 290 }, aspectRatio: 0.75 }, 
       false
     );
     adminHtml5QrcodeScanner.render(onAdminScanSuccess, () => {});
