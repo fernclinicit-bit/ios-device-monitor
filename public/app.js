@@ -1493,6 +1493,9 @@ document.addEventListener('DOMContentLoaded', () => {
           newAssetSn.value = '';
           newAssetLocation.value = '';
           document.getElementById('new-asset-image').value = '';
+          const fname = document.getElementById('new-asset-image-filename');
+          if (fname) fname.textContent = 'ยังไม่ได้เลือกรูปภาพ';
+          
           addAssetDrawer.classList.add('hidden');
           loadData();
         } else {
@@ -1595,10 +1598,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById(inputId);
     const img = document.getElementById(previewImgId);
     const container = document.getElementById(previewContainerId);
+    const filenameLabel = document.getElementById(inputId + '-filename');
     
     if (input && img && container) {
       input.addEventListener('change', function() {
         if (this.files && this.files[0]) {
+          if (filenameLabel) filenameLabel.textContent = this.files[0].name;
           const reader = new FileReader();
           reader.onload = function(e) {
             img.src = e.target.result;
@@ -1606,6 +1611,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           reader.readAsDataURL(this.files[0]);
         } else {
+          if (filenameLabel) filenameLabel.textContent = 'ยังไม่ได้เลือกรูปภาพ';
           img.src = '';
           container.classList.add('hidden');
         }
@@ -1622,6 +1628,8 @@ document.addEventListener('DOMContentLoaded', () => {
     originalOpenEditAssetModal(id);
     document.getElementById('edit-asset-image-preview').src = '';
     document.getElementById('edit-asset-image-preview-container').classList.add('hidden');
+    const fname = document.getElementById('edit-asset-image-filename');
+    if (fname) fname.textContent = 'ยังไม่ได้เลือกรูปภาพ';
   };
 
   // --- Location Picker Map Logic ---
