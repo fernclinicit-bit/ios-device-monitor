@@ -1550,7 +1550,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           showToast('Error updating asset.');
         }
-        }
       } catch (err) {
         console.error(err);
         showToast('Network error.');
