@@ -1588,4 +1588,133 @@ document.addEventListener('DOMContentLoaded', () => {
   loadData();
   // Poll every 1 second for near-instant synchronization across devices
   setInterval(loadData, 1000);
+  // --- Image Preview Logic ---
+  function setupImagePreview(inputId, previewImgId, previewContainerId) {
+    const input = document.getElementById(inputId);
+    const img = document.getElementById(previewImgId);
+    const container = document.getElementById(previewContainerId);
+    
+    if (input && img && container) {
+      input.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            img.src = e.target.result;
+            container.classList.remove('hidden');
+          }
+          reader.readAsDataURL(this.files[0]);
+        } else {
+          img.src = '';
+          container.classList.add('hidden');
+        }
+      });
+    }
+  }
+
+  setupImagePreview('new-asset-image', 'new-asset-image-preview', 'new-asset-image-preview-container');
+  setupImagePreview('edit-asset-image', 'edit-asset-image-preview', 'edit-asset-image-preview-container');
+
+  // Override window.openEditAssetModal to clear image preview
+  const originalOpenEditAssetModal = window.openEditAssetModal;
+  window.openEditAssetModal = (id) => {
+    originalOpenEditAssetModal(id);
+    document.getElementById('edit-asset-image-preview').src = '';
+    document.getElementById('edit-asset-image-preview-container').classList.add('hidden');
+  };
+
+  // --- Location Picker Map Logic ---
+  const locationPickerModal = document.getElementById('location-picker-modal');
+  const btnClosePicker = document.getElementById('btn-close-location-picker');
+  const btnConfirmPicker = document.getElementById('btn-confirm-location-picker');
+  const pickerAddressPreview = document.getElementById('picker-address-preview');
+  
+  let pickerMap = null;
+  let pickerMarker = null;
+  let currentTargetInputId = null;
+  let currentPickedAddress = '';
+
+  async function reverseGeocodeNominatim(lat, lng) {
+    try {
+      pickerAddressPreview.textContent = 'กำลังค้นหาที่อยู่...';
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=th`);
+      const data = await res.json();
+      if (data && data.display_name) {
+        currentPickedAddress = data.display_name;
+        pickerAddressPreview.textContent = currentPickedAddress;
+        return currentPickedAddress;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    currentPickedAddress = `${lat}, ${lng}`;
+    pickerAddressPreview.textContent = currentPickedAddress;
+    return currentPickedAddress;
+  }
+
+  function openLocationPicker(targetInputId) {
+    currentTargetInputId = targetInputId;
+    currentPickedAddress = '';
+    pickerAddressPreview.textContent = 'คลิกบนแผนที่เพื่อปักหมุดตำแหน่ง';
+    locationPickerModal.classList.remove('hidden');
+    
+    if (!pickerMap) {
+      pickerMap = L.map('picker-map-container').setView([13.736717, 100.523186], 13);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap',
+        maxZoom: 20
+      }).addTo(pickerMap);
+      
+      pickerMap.on('click', async (e) => {
+        const { lat, lng } = e.latlng;
+        if (!pickerMarker) {
+          pickerMarker = L.marker([lat, lng]).addTo(pickerMap);
+        } else {
+          pickerMarker.setLatLng([lat, lng]);
+        }
+        await reverseGeocodeNominatim(lat, lng);
+      });
+    }
+
+    setTimeout(() => {
+      pickerMap.invalidateSize();
+      if (!pickerMarker && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          pickerMap.setView([lat, lng], 16);
+          pickerMarker = L.marker([lat, lng]).addTo(pickerMap);
+          await reverseGeocodeNominatim(lat, lng);
+        }, () => {});
+      }
+    }, 100);
+  }
+
+  const btnPickLocationNew = document.getElementById('btn-pick-location-new');
+  if (btnPickLocationNew) {
+    btnPickLocationNew.addEventListener('click', () => openLocationPicker('new-asset-location'));
+  }
+
+  const btnPickLocationEdit = document.getElementById('btn-pick-location-edit');
+  if (btnPickLocationEdit) {
+    btnPickLocationEdit.addEventListener('click', () => openLocationPicker('edit-asset-location'));
+  }
+
+  if (btnClosePicker) {
+    btnClosePicker.addEventListener('click', () => {
+      locationPickerModal.classList.add('hidden');
+    });
+  }
+
+  if (btnConfirmPicker) {
+    btnConfirmPicker.addEventListener('click', () => {
+      if (currentTargetInputId && currentPickedAddress) {
+        const targetInput = document.getElementById(currentTargetInputId);
+        if (targetInput) {
+          targetInput.value = currentPickedAddress;
+        }
+      }
+      locationPickerModal.classList.add('hidden');
+    });
+  }
+
 });

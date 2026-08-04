@@ -269,11 +269,19 @@
               </div>
               <div class="input-field" style="grid-column: span 2;">
                 <label for="new-asset-location">สถานที่ตั้ง (Location)</label>
-                <input type="text" id="new-asset-location" placeholder="เช่น ห้องประชุม 1, ชั้น 2">
+                <div style="display: flex; gap: 0.5rem;">
+                  <input type="text" id="new-asset-location" placeholder="เช่น ห้องประชุม 1, ชั้น 2" style="flex: 1;">
+                  <button type="button" id="btn-pick-location-new" class="btn btn-secondary" style="white-space: nowrap; padding: 0 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    📍 แผนที่
+                  </button>
+                </div>
               </div>
               <div class="input-field" style="grid-column: span 2;">
                 <label for="new-asset-image">แนบรูปภาพทรัพย์สิน (Asset Image) - แนะนำแนวนอน</label>
                 <input type="file" id="new-asset-image" accept="image/*" style="padding: 0.5rem; background: rgba(0,0,0,0.1); border: 1px dashed rgba(255,255,255,0.2); border-radius: 8px;">
+                <div id="new-asset-image-preview-container" class="hidden" style="margin-top: 1rem; border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px; padding: 0.5rem; text-align: center;">
+                  <img id="new-asset-image-preview" src="" style="max-width: 100%; max-height: 200px; border-radius: 4px; object-fit: contain;">
+                </div>
               </div>
             </div>
             <button id="btn-submit-asset" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Save Asset</button>
@@ -298,11 +306,19 @@
               </div>
               <div class="input-field">
                 <label for="edit-asset-location">สถานที่ตั้ง (Location)</label>
-                <input type="text" id="edit-asset-location">
+                <div style="display: flex; gap: 0.5rem;">
+                  <input type="text" id="edit-asset-location">
+                  <button type="button" id="btn-pick-location-edit" class="btn btn-secondary" style="white-space: nowrap; padding: 0 0.5rem;" title="เลือกจากแผนที่">
+                    📍
+                  </button>
+                </div>
               </div>
               <div class="input-field" style="grid-column: span 2;">
                 <label for="edit-asset-image">แนบรูปภาพใหม่ (อัปโหลดเพื่อแทนที่รูปเดิม)</label>
                 <input type="file" id="edit-asset-image" accept="image/*" style="padding: 0.5rem; background: rgba(0,0,0,0.1); border: 1px dashed rgba(255,255,255,0.2); border-radius: 8px;">
+                <div id="edit-asset-image-preview-container" class="hidden" style="margin-top: 1rem; border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px; padding: 0.5rem; text-align: center;">
+                  <img id="edit-asset-image-preview" src="" style="max-width: 100%; max-height: 200px; border-radius: 4px; object-fit: contain;">
+                </div>
               </div>
             </div>
             <div style="display: flex; gap: 1rem; margin-top: 1rem;">
@@ -437,6 +453,22 @@
 
   <!-- Notification Popup -->
   <div id="toast-notification" class="toast hidden"></div>
+
+  <!-- Location Picker Modal -->
+  <div id="location-picker-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 600px; width: 95%;">
+      <h2>📍 เลือกสถานที่ตั้งบนแผนที่</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">คลิกบนแผนที่เพื่อปักหมุดตำแหน่ง แล้วกด "ยืนยันตำแหน่ง"</p>
+      <div id="picker-map-container" style="width: 100%; height: 350px; border-radius: 8px; margin-bottom: 1rem; background: #222;"></div>
+      <div id="picker-address-preview" style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; min-height: 40px; color: #fff;">
+        กำลังค้นหาที่อยู่...
+      </div>
+      <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+        <button id="btn-close-location-picker" class="btn btn-secondary">ยกเลิก</button>
+        <button id="btn-confirm-location-picker" class="btn btn-primary">ยืนยันตำแหน่ง</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Client JavaScript -->
   <script src="app.js"></script>
