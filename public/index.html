@@ -27,7 +27,13 @@
   <div class="app-container">
     <!-- VIEW TOGGLE (Mainly for testing/debugging) -->
     <div class="view-switcher-bar">
-      <span class="mode-tag" id="detected-os-tag">Detected: Detecting OS...</span>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <button id="btn-back-to-dashboard" class="btn-text hidden" style="padding: 0; color: #9ca3af; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; text-decoration: none; background: none; border: none; cursor: pointer;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          แดชบอร์ด (Devices)
+        </button>
+        <span class="mode-tag" id="detected-os-tag">Detected: Detecting OS...</span>
+      </div>
       <button id="btn-toggle-view" class="btn-text">Switch View (Admin / Client)</button>
     </div>
 

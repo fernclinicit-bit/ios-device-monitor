@@ -1304,6 +1304,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Asset Management Event Listeners ---
   
   // Tab Switching
+  const btnBackToDashboard = document.getElementById('btn-back-to-dashboard');
+
   if (navDevicesBtn && navAssetsBtn) {
     navDevicesBtn.addEventListener('click', () => {
       navDevicesBtn.classList.replace('btn-secondary', 'btn-primary');
@@ -1311,6 +1313,9 @@ document.addEventListener('DOMContentLoaded', () => {
       devicesSection.classList.remove('hidden');
       assetsSection.classList.add('hidden');
       if (btnShowScanAsset) btnShowScanAsset.classList.add('hidden');
+      
+      navDevicesBtn.style.display = 'block';
+      if (btnBackToDashboard) btnBackToDashboard.classList.add('hidden');
     });
     navAssetsBtn.addEventListener('click', () => {
       navAssetsBtn.classList.replace('btn-secondary', 'btn-primary');
@@ -1318,7 +1323,16 @@ document.addEventListener('DOMContentLoaded', () => {
       assetsSection.classList.remove('hidden');
       devicesSection.classList.add('hidden');
       if (btnShowScanAsset) btnShowScanAsset.classList.remove('hidden');
+      
+      navDevicesBtn.style.display = 'none';
+      if (btnBackToDashboard) btnBackToDashboard.classList.remove('hidden');
     });
+
+    if (btnBackToDashboard) {
+      btnBackToDashboard.addEventListener('click', () => {
+        navDevicesBtn.click();
+      });
+    }
   }
 
   // Drawers
