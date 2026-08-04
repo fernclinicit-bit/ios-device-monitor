@@ -228,13 +228,28 @@
         <section class="glass-card main-card">
           <div class="card-header">
             <h2>Company Assets</h2>
-            <button id="btn-show-add-asset" class="btn btn-secondary">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Add Asset
-            </button>
+            <div>
+              <button id="btn-show-scan-asset" class="btn btn-primary" style="margin-right: 0.5rem; background: var(--accent-indigo);">
+                📷 สแกน QR (Scan Asset)
+              </button>
+              <button id="btn-show-add-asset" class="btn btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Asset
+              </button>
+            </div>
+          </div>
+
+          <!-- SCAN ASSET DRAWER -->
+          <div id="scan-asset-drawer" class="drawer hidden" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h3 style="margin: 0; font-size: 1.1rem;">📷 สแกน QR Code ทรัพย์สิน</h3>
+              <button id="btn-close-scan-asset" class="btn-text" style="color: #fca5a5;">ปิดกล้อง (Close)</button>
+            </div>
+            <div id="admin-qr-reader" style="width: 100%; border-radius: 8px; overflow: hidden; background: #000;"></div>
+            <div id="admin-qr-results" style="margin-top: 1rem; font-weight: bold; color: var(--accent-purple); text-align: center;"></div>
           </div>
 
           <!-- ADD ASSET DRAWER -->

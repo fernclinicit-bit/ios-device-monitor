@@ -59,6 +59,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const newAssetCategory = document.getElementById('new-asset-category');
   const newAssetSn = document.getElementById('new-asset-sn');
   const newAssetLocation = document.getElementById('new-asset-location');
+  
+  // Admin Scanner Elements
+  const btnShowScanAsset = document.getElementById('btn-show-scan-asset');
+  const scanAssetDrawer = document.getElementById('scan-asset-drawer');
+  const btnCloseScanAsset = document.getElementById('btn-close-scan-asset');
+  const adminQrResults = document.getElementById('admin-qr-results');
   const btnSubmitAsset = document.getElementById('btn-submit-asset');
 
   const editAssetDrawer = document.getElementById('edit-asset-drawer');
@@ -1287,6 +1293,98 @@ document.addEventListener('DOMContentLoaded', () => {
     btnShowAddAsset.addEventListener('click', () => {
       addAssetDrawer.classList.toggle('hidden');
       if (editAssetDrawer) editAssetDrawer.classList.add('hidden');
+      if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
+      if (adminHtml5QrcodeScanner) {
+        adminHtml5QrcodeScanner.clear().catch(e => console.error(e));
+        adminHtml5QrcodeScanner = null;
+      }
+    });
+  }
+
+  // --- Admin QR Scanner Logic ---
+  let adminHtml5QrcodeScanner = null;
+
+  function initAdminQrScanner() {
+    if (adminHtml5QrcodeScanner) return; // Already initialized
+    adminHtml5QrcodeScanner = new Html5QrcodeScanner(
+      "admin-qr-reader", 
+      { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, 
+      false
+    );
+    adminHtml5QrcodeScanner.render(onAdminScanSuccess, () => {});
+  }
+
+  async function onAdminScanSuccess(decodedText) {
+    let assetId = decodedText;
+    if (assetId.includes('/?id=')) {
+      const urlParams = new URLSearchParams(assetId.split('?')[1]);
+      assetId = urlParams.get('id') || decodedText;
+    } else if (assetId.includes('/scanner.html?id=')) {
+      const urlParams = new URLSearchParams(assetId.split('?')[1]);
+      assetId = urlParams.get('id') || decodedText;
+    }
+
+    if (!assetId.startsWith('ast-')) {
+      adminQrResults.textContent = "QR Code นี้ไม่ใช่ของทรัพย์สินที่รองรับ";
+      return;
+    }
+
+    adminHtml5QrcodeScanner.pause();
+    adminQrResults.textContent = `Processing Scan... (${assetId})`;
+
+    try {
+      const res = await fetch('/api/scan-asset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: assetId })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        adminQrResults.innerHTML = `<span style="color: #10b981;">✅ Check-in Success!</span><br>${data.asset.name} updated.`;
+        loadData(); // reload dashboard data
+      } else {
+        adminQrResults.innerHTML = `<span style="color: #ef4444;">❌ Error: ${data.error}</span>`;
+      }
+    } catch (err) {
+      adminQrResults.innerHTML = `<span style="color: #ef4444;">❌ Request Failed</span>`;
+    }
+    
+    setTimeout(() => {
+      adminQrResults.textContent = "";
+      if (adminHtml5QrcodeScanner) {
+        adminHtml5QrcodeScanner.resume();
+      }
+    }, 3000);
+  }
+
+  if (btnShowScanAsset) {
+    btnShowScanAsset.addEventListener('click', () => {
+      // Toggle logic
+      if (scanAssetDrawer.classList.contains('hidden')) {
+        scanAssetDrawer.classList.remove('hidden');
+        if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
+        if (editAssetDrawer) editAssetDrawer.classList.add('hidden');
+        if (typeof Html5QrcodeScanner !== 'undefined') {
+          initAdminQrScanner();
+        }
+      } else {
+        scanAssetDrawer.classList.add('hidden');
+        if (adminHtml5QrcodeScanner) {
+          adminHtml5QrcodeScanner.clear().catch(e => console.error(e));
+          adminHtml5QrcodeScanner = null;
+        }
+      }
+    });
+  }
+
+  if (btnCloseScanAsset) {
+    btnCloseScanAsset.addEventListener('click', () => {
+      scanAssetDrawer.classList.add('hidden');
+      if (adminHtml5QrcodeScanner) {
+        adminHtml5QrcodeScanner.clear().catch(e => console.error(e));
+        adminHtml5QrcodeScanner = null;
+      }
     });
   }
 
