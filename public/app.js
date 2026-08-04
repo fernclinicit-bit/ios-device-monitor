@@ -125,8 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clean URL query parameter from address bar
     window.history.replaceState({}, document.title, window.location.pathname);
     currentActiveView = 'client';
-  } else if (isIOS) {
-    currentActiveView = 'client';
   }
 
   // Initialize OS detection display tag
@@ -210,11 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
       clientView.classList.remove('hidden');
       viewSwitcherBar.classList.add('hidden');
       if (desktopBackToAdmin) {
-        if (!isIOS) {
-          desktopBackToAdmin.classList.remove('hidden');
-        } else {
-          desktopBackToAdmin.classList.add('hidden');
-        }
+        desktopBackToAdmin.classList.remove('hidden');
       }
     }
   }
