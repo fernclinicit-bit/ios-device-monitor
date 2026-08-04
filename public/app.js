@@ -1304,30 +1304,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Asset Management Event Listeners ---
   
   // Tab Switching
-  if (navDevicesBtn && navAssetsBtn && navClientPortalBtn) {
+  if (navDevicesBtn && navAssetsBtn) {
     navDevicesBtn.addEventListener('click', () => {
       navDevicesBtn.classList.replace('btn-secondary', 'btn-primary');
       navAssetsBtn.classList.replace('btn-primary', 'btn-secondary');
       devicesSection.classList.remove('hidden');
       assetsSection.classList.add('hidden');
+      if (btnShowScanAsset) btnShowScanAsset.classList.add('hidden');
     });
     navAssetsBtn.addEventListener('click', () => {
       navAssetsBtn.classList.replace('btn-secondary', 'btn-primary');
       navDevicesBtn.classList.replace('btn-primary', 'btn-secondary');
       assetsSection.classList.remove('hidden');
       devicesSection.classList.add('hidden');
-    });
-    navClientPortalBtn.addEventListener('click', () => {
-      // Trigger the existing Switch View logic to go to Client Portal
-      if (!adminView.classList.contains('hidden')) {
-        adminView.classList.add('hidden');
-        clientView.classList.remove('hidden');
-        btnToggleView.textContent = 'Switch to Admin View';
-        
-        // Force Test Mode to show Active button instead of Scanner
-        window.adminTestMode = true;
-        updateClientPortal();
-      }
+      if (btnShowScanAsset) btnShowScanAsset.classList.remove('hidden');
     });
   }
 
