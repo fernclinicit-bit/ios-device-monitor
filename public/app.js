@@ -1357,7 +1357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (adminHtml5QrcodeScanner) return; // Already initialized
     adminHtml5QrcodeScanner = new Html5QrcodeScanner(
       "admin-qr-reader", 
-      { fps: 10, qrbox: { width: 220, height: 290 }, aspectRatio: 0.75 }, 
+      { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, 
       false
     );
     adminHtml5QrcodeScanner.render(onAdminScanSuccess, () => {});
