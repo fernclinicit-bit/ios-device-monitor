@@ -80,8 +80,63 @@ document.addEventListener('DOMContentLoaded', () => {
   const qrModal = document.getElementById('qr-modal');
   const qrModalTitle = document.getElementById('qr-modal-title');
   const qrModalSn = document.getElementById('qr-modal-sn');
-  const qrcodeContainer = document.getElementById('qrcode-container');
   const btnCloseQrModal = document.getElementById('btn-close-qr-modal');
+  const qrcodeContainer = document.getElementById('qrcode-container');
+
+  // Sidebar DOM
+  const sbDashboard = document.getElementById('sb-dashboard');
+  const sbAddAsset = document.getElementById('sb-add-asset');
+  const sbScanQr = document.getElementById('sb-scan-qr');
+  const sbExportPdf = document.getElementById('sb-export-pdf');
+  const sbSettings = document.getElementById('sb-settings');
+  const sbLogout = document.getElementById('sb-logout');
+  const sidebarItems = [sbDashboard, sbAddAsset, sbScanQr, sbExportPdf, sbSettings, sbLogout];
+
+  function setActiveSidebar(activeBtn) {
+    sidebarItems.forEach(btn => {
+      if(btn) btn.classList.remove('active');
+    });
+    if(activeBtn) activeBtn.classList.add('active');
+  }
+
+  if (sbDashboard) {
+    sbDashboard.addEventListener('click', () => {
+      setActiveSidebar(sbDashboard);
+      if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
+      if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
+      if (navAssetsBtn) navAssetsBtn.click(); // Ensure we are on the assets tab
+    });
+  }
+  if (sbAddAsset) {
+    sbAddAsset.addEventListener('click', () => {
+      setActiveSidebar(sbAddAsset);
+      if (btnShowAddAsset) btnShowAddAsset.click();
+    });
+  }
+  if (sbScanQr) {
+    sbScanQr.addEventListener('click', () => {
+      setActiveSidebar(sbScanQr);
+      if (btnShowScanAsset) btnShowScanAsset.click();
+    });
+  }
+  if (sbExportPdf) {
+    sbExportPdf.addEventListener('click', () => {
+      if (btnExportPdf) btnExportPdf.click();
+    });
+  }
+  if (sbSettings) {
+    sbSettings.addEventListener('click', () => {
+      setActiveSidebar(sbSettings);
+      showToast('Settings feature coming soon!');
+    });
+  }
+  if (sbLogout) {
+    sbLogout.addEventListener('click', () => {
+      setActiveSidebar(sbLogout);
+      showToast('Logged out successfully.');
+      setTimeout(() => window.location.reload(), 1000);
+    });
+  }
   
   // Client DOM
   const clientDeviceHeader = document.getElementById('client-device-header');
