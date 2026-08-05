@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Asset DOM
   const statTotalAssets = document.getElementById('stat-total-assets');
   const statScannedAssets = document.getElementById('stat-scanned-assets');
-  const assetsListTbody = document.getElementById('assets-list-tbody');
+  const assetsGrid = document.getElementById('assets-grid');
   const emptyAssetsMsg = document.getElementById('empty-assets-msg');
   const btnShowAddAsset = document.getElementById('btn-show-add-asset');
   
@@ -86,12 +86,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Sidebar DOM
   const sbDashboard = document.getElementById('sb-dashboard');
   const sbAssets = document.getElementById('sb-assets');
+  const sbAssetsRegistered = document.getElementById('sb-assets-registered');
   const sbScanQr = document.getElementById('sb-scan-qr');
   const sbExportDevicesPdf = document.getElementById('sb-export-devices-pdf');
   const sbExportAssetsPdf = document.getElementById('sb-export-assets-pdf');
   const sbSettings = document.getElementById('sb-settings');
   const sbLogout = document.getElementById('sb-logout');
-  const sidebarItems = [sbDashboard, sbAssets, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
+  const sidebarItems = [sbDashboard, sbAssets, sbAssetsRegistered, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
 
   function setActiveSidebar(activeBtn) {
     sidebarItems.forEach(btn => {
@@ -112,6 +113,18 @@ document.addEventListener('DOMContentLoaded', () => {
     sbAssets.addEventListener('click', () => {
       setActiveSidebar(sbAssets);
       if (navAssetsBtn) navAssetsBtn.click(); // Switch to Assets view
+    });
+  }
+  if (sbAssetsRegistered) {
+    sbAssetsRegistered.addEventListener('click', () => {
+      setActiveSidebar(sbAssetsRegistered);
+      if (navAssetsBtn) navAssetsBtn.click();
+      if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
+      if (editAssetDrawer) editAssetDrawer.classList.add('hidden');
+      if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
+      if (assetsSection) {
+        assetsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     });
   }
   if (sbScanQr) {
@@ -641,13 +654,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }).length;
     statScannedAssets.textContent = recent;
 
-    assetsListTbody.innerHTML = '';
+    assetsGrid.innerHTML = '';
     if (assets.length === 0) {
       emptyAssetsMsg.classList.remove('hidden');
     } else {
       emptyAssetsMsg.classList.add('hidden');
       assets.forEach(a => {
-        const tr = document.createElement('tr');
+        const card = document.createElement('article');
+        card.className = 'asset-card glass-card';
         
         const lastScannedFormatted = a.lastScannedAt ? new Date(a.lastScannedAt).toLocaleString() : 'Never';
         
@@ -666,36 +680,34 @@ document.addEventListener('DOMContentLoaded', () => {
              </div>` 
           : `<div style="width: 90px; height: 120px; background: rgba(0,0,0,0.2); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; color: #6b7280; font-size: 0.8rem; border: 1px dashed rgba(255,255,255,0.1);">No Image</div>`;
 
-        tr.innerHTML = `
-          <td>
-            <div style="font-weight: 600; font-size: 1.15rem; color: #fff; margin-bottom: 0.25rem;">${escapeHtml(a.name)}</div>
-            <div style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 0.75rem; line-height: 1.4;">
-              <strong>Category:</strong> ${escapeHtml(a.category || '-')}<br>
-              <strong>S/N:</strong> ${escapeHtml(snDisplay)}<br>
-              <strong>Location:</strong> ${escapeHtml(a.location || '-')}
+        card.innerHTML = `
+          <div class="asset-card-header">
+            <div>
+              <h3>${escapeHtml(a.name)}</h3>
+              <span class="asset-category">${escapeHtml(a.category || 'ไม่ระบุหมวดหมู่')}</span>
             </div>
-            <div style="display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 0.5rem;">
-              ${imgHtml}
-              <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-                <div id="inline-qr-${a.id}" style="width: 120px; height: 120px; background: white; padding: 10px; border-radius: 8px;"></div>
-                <span style="font-size: 0.75rem; color: #6b7280;">ID: ${a.id.substring(4)}</span>
-              </div>
+            <div class="asset-card-actions">
+              <button class="btn-action edit" onclick="openEditAssetModal('${a.id}')" title="แก้ไข">✏️</button>
+              <button class="btn-action delete" onclick="confirmDeleteAsset('${a.id}')" title="ลบ">🗑️</button>
             </div>
-          </td>
-          <td style="vertical-align: top; padding-top: 1rem;">
-            <div class="status-cell">
+          </div>
+          <div class="asset-card-visuals">
+            ${imgHtml}
+            <div class="asset-qr-block">
+              <div id="inline-qr-${a.id}" style="width: 120px; height: 120px; background: white; padding: 10px; border-radius: 8px;"></div>
+              <span style="font-size: 0.75rem; color: #6b7280;">ID: ${a.id.substring(4)}</span>
+            </div>
+          </div>
+          <div class="asset-card-details">
+            <div><span>หมายเลข S/N</span><strong>${escapeHtml(snDisplay)}</strong></div>
+            <div><span>สถานที่ตั้ง</span><strong>${escapeHtml(a.location || '-')}</strong></div>
+            <div><span>ตรวจสอบล่าสุด</span><strong class="status-cell">
               <span class="status-indicator ${a.lastScannedAt ? 'active' : 'unverified'}"></span>
               ${lastScannedFormatted}
-            </div>
-          </td>
-          <td style="vertical-align: top; padding-top: 1rem;">
-            <div class="action-buttons">
-              <button class="btn-action edit" onclick="openEditAssetModal('${a.id}')" title="Edit">✏️</button>
-              <button class="btn-action delete" onclick="confirmDeleteAsset('${a.id}')" title="Delete">🗑️</button>
-            </div>
-          </td>
+            </strong></div>
+          </div>
         `;
-        assetsListTbody.appendChild(tr);
+        assetsGrid.appendChild(card);
 
         // Render QR Code inline after appending
         setTimeout(() => {

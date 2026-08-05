@@ -41,6 +41,12 @@
           <span class="sb-icon">🏢</span>
           <span class="sb-text">ระบบนับทรัพย์สิน (Assets)</span>
         </button>
+        <div id="sb-assets-submenu" class="sidebar-submenu">
+          <button id="sb-assets-registered" class="sidebar-submenu-item">
+            <span class="sb-submenu-icon">📋</span>
+            <span>ข้อมูลทรัพย์สินที่ลงทะเบียน</span>
+          </button>
+        </div>
         <button id="sb-scan-qr" class="sidebar-menu-item">
           <span class="sb-icon">📷</span>
           <span class="sb-text">สแกน QR (Scan QR)</span>
@@ -389,21 +395,12 @@
             </div>
           </div>
 
-          <div class="table-container">
-            <table class="devices-table">
-              <thead>
-                <tr>
-                  <th>รายละเอียดทรัพย์สิน (Asset Details)</th>
-                  <th>ตรวจสอบล่าสุด (Last Scanned)</th>
-                  <th style="min-width: 120px;">จัดการ (Actions)</th>
-                </tr>
-              </thead>
-              <tbody id="assets-list-tbody">
-                <!-- Rendered via JS -->
-              </tbody>
-            </table>
+          <div class="assets-grid-container" style="margin-top: 1.5rem;">
+            <div id="assets-grid" class="assets-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+              <!-- Rendered via JS -->
+            </div>
             <div id="empty-assets-msg" class="empty-state hidden">
-              <p>No assets currently tracked. Add a new asset to get started.</p>
+              <p>No assets currently tracked in this category. Add a new asset to get started.</p>
             </div>
           </div>
         </section>
