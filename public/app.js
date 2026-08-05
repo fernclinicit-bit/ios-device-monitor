@@ -192,6 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- App State ---
   let devices = [];
   let assets = [];
+  let renderedAssetsSignature = '';
+  let selectedAssetId = null;
   let logs = [];
   let currentFilteredDevices = [];
   let currentFilteredAssets = [];
@@ -710,14 +712,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('')
       : '<div class="asset-dashboard-empty">ยังไม่มีทรัพย์สินในระบบ</div>';
 
-    assetsDetailList.innerHTML = '';
-    assetSelectedCard.innerHTML = '<div class="asset-card-placeholder">เลือกรายการทรัพย์สินเพื่อดูรายละเอียดแบบ Card</div>';
-    assetSelectedCard.classList.remove('has-card');
-    if (assets.length === 0) {
-      emptyAssetsMsg.classList.remove('hidden');
-    } else {
-      emptyAssetsMsg.classList.add('hidden');
-      assets.forEach(a => {
+    const assetsSignature = JSON.stringify(assets.map(asset => ({
+      id: asset.id,
+      name: asset.name,
+      category: asset.category,
+      sn: asset.sn || asset.serialNumber,
+      location: asset.location,
+      imageKey: asset.image ? `${asset.image.length}:${asset.image.slice(-32)}` : '',
+      lastScannedAt: asset.lastScannedAt
+    })));
+
+    if (assetsSignature !== renderedAssetsSignature) {
+      renderedAssetsSignature = assetsSignature;
+      assetsDetailList.innerHTML = '';
+
+      if (assets.length === 0) {
+        selectedAssetId = null;
+        emptyAssetsMsg.classList.remove('hidden');
+        assetSelectedCard.innerHTML = '<div class="asset-card-placeholder">ยังไม่มีข้อมูลทรัพย์สิน</div>';
+        assetSelectedCard.classList.remove('has-card');
+      } else {
+        emptyAssetsMsg.classList.add('hidden');
+        assets.forEach(a => {
         const item = document.createElement('button');
         item.type = 'button';
         item.className = 'asset-detail-list-item';
@@ -730,12 +746,24 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="asset-detail-list-arrow" aria-hidden="true">›</span>
         `;
         item.addEventListener('click', () => {
+          selectedAssetId = a.id;
           assetsDetailList.querySelectorAll('.asset-detail-list-item').forEach(button => button.classList.remove('active'));
           item.classList.add('active');
           renderSelectedAssetCard(a);
         });
+        if (a.id === selectedAssetId) item.classList.add('active');
         assetsDetailList.appendChild(item);
-      });
+        });
+
+        const selectedAsset = assets.find(asset => asset.id === selectedAssetId);
+        if (selectedAsset) {
+          renderSelectedAssetCard(selectedAsset);
+        } else {
+          selectedAssetId = null;
+          assetSelectedCard.innerHTML = '<div class="asset-card-placeholder">เลือกรายการทรัพย์สินเพื่อดูรายละเอียดแบบ Card</div>';
+          assetSelectedCard.classList.remove('has-card');
+        }
+      }
     }
 
     window.confirmDeleteAsset = async (id) => {
