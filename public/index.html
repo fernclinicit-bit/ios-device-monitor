@@ -267,16 +267,61 @@
 
       <!-- ==================== ASSETS SECTION ==================== -->
       <div id="assets-section-content" class="hidden">
-        <section id="assets-overview-panel" class="stats-grid">
-          <div class="stat-card glass-card">
-            <span class="stat-title">Total Assets</span>
-            <span id="stat-total-assets" class="stat-value">0</span>
-          </div>
-          <div class="stat-card glass-card">
-            <span class="stat-title">Recently Scanned</span>
-            <span id="stat-scanned-assets" class="stat-value success-text">0</span>
-          </div>
-        </section>
+        <div id="assets-overview-panel">
+          <section class="stats-grid">
+            <div class="stat-card glass-card">
+              <span class="stat-title">Total Assets</span>
+              <span id="stat-total-assets" class="stat-value">0</span>
+            </div>
+            <div class="stat-card glass-card">
+              <span class="stat-title">Recently Scanned</span>
+              <span id="stat-scanned-assets" class="stat-value success-text">0</span>
+            </div>
+          </section>
+
+          <section class="asset-dashboard-grid">
+            <article class="glass-card asset-dashboard-panel">
+              <div class="asset-dashboard-heading">
+                <div>
+                  <span class="asset-dashboard-kicker">SCAN COVERAGE</span>
+                  <h2>ภาพรวมการตรวจสอบ</h2>
+                </div>
+                <span class="asset-dashboard-icon">◎</span>
+              </div>
+              <div class="asset-coverage-layout">
+                <div id="asset-coverage-ring" class="asset-coverage-ring">
+                  <div><strong id="asset-coverage-value">0%</strong><span>ตรวจแล้ว</span></div>
+                </div>
+                <div class="asset-coverage-legend">
+                  <div><span class="legend-dot scanned"></span><span>ตรวจสอบแล้ว</span><strong id="asset-scanned-total">0</strong></div>
+                  <div><span class="legend-dot pending"></span><span>ยังไม่ตรวจสอบ</span><strong id="asset-unscanned-total">0</strong></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="glass-card asset-dashboard-panel">
+              <div class="asset-dashboard-heading">
+                <div>
+                  <span class="asset-dashboard-kicker">CATEGORIES</span>
+                  <h2>ทรัพย์สินตามหมวดหมู่</h2>
+                </div>
+                <span class="asset-dashboard-icon">▦</span>
+              </div>
+              <div id="asset-category-summary" class="asset-summary-list"></div>
+            </article>
+
+            <article class="glass-card asset-dashboard-panel asset-recent-panel">
+              <div class="asset-dashboard-heading">
+                <div>
+                  <span class="asset-dashboard-kicker">RECENT ASSETS</span>
+                  <h2>ทรัพย์สินที่เพิ่มล่าสุด</h2>
+                </div>
+                <span class="asset-dashboard-icon">↗</span>
+              </div>
+              <div id="asset-recent-summary" class="asset-recent-list"></div>
+            </article>
+          </section>
+        </div>
 
         <section id="registered-assets-page" class="glass-card main-card hidden">
           <div class="card-header">

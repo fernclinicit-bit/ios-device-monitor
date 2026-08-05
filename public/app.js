@@ -52,6 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Asset DOM
   const statTotalAssets = document.getElementById('stat-total-assets');
   const statScannedAssets = document.getElementById('stat-scanned-assets');
+  const assetCoverageRing = document.getElementById('asset-coverage-ring');
+  const assetCoverageValue = document.getElementById('asset-coverage-value');
+  const assetScannedTotal = document.getElementById('asset-scanned-total');
+  const assetUnscannedTotal = document.getElementById('asset-unscanned-total');
+  const assetCategorySummary = document.getElementById('asset-category-summary');
+  const assetRecentSummary = document.getElementById('asset-recent-summary');
   const assetsGrid = document.getElementById('assets-grid');
   const emptyAssetsMsg = document.getElementById('empty-assets-msg');
   const btnShowAddAsset = document.getElementById('btn-show-add-asset');
@@ -661,6 +667,47 @@ document.addEventListener('DOMContentLoaded', () => {
       return diffDays <= 7;
     }).length;
     statScannedAssets.textContent = recent;
+
+    const scannedTotal = assets.filter(a => a.lastScannedAt).length;
+    const unscannedTotal = assets.length - scannedTotal;
+    const coveragePercent = assets.length ? Math.round((scannedTotal / assets.length) * 100) : 0;
+    assetCoverageValue.textContent = `${coveragePercent}%`;
+    assetScannedTotal.textContent = scannedTotal;
+    assetUnscannedTotal.textContent = unscannedTotal;
+    assetCoverageRing.style.background = `conic-gradient(var(--success-color) ${coveragePercent}%, rgba(148, 163, 184, 0.18) ${coveragePercent}% 100%)`;
+
+    const categoryCounts = assets.reduce((counts, asset) => {
+      const category = (asset.category || 'ไม่ระบุหมวดหมู่').trim() || 'ไม่ระบุหมวดหมู่';
+      counts.set(category, (counts.get(category) || 0) + 1);
+      return counts;
+    }, new Map());
+    const sortedCategories = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1]);
+    assetCategorySummary.innerHTML = sortedCategories.length
+      ? sortedCategories.slice(0, 6).map(([category, count]) => `
+          <div class="asset-summary-row">
+            <span>${escapeHtml(category)}</span>
+            <div class="asset-summary-meter"><i style="width: ${Math.round((count / assets.length) * 100)}%"></i></div>
+            <strong>${count}</strong>
+          </div>
+        `).join('')
+      : '<div class="asset-dashboard-empty">ยังไม่มีข้อมูลหมวดหมู่</div>';
+
+    const recentAssets = [...assets]
+      .sort((a, b) => new Date(b.registeredAt || b.createdAt || b.updatedAt || 0) - new Date(a.registeredAt || a.createdAt || a.updatedAt || 0))
+      .slice(0, 5);
+    assetRecentSummary.innerHTML = recentAssets.length
+      ? recentAssets.map(asset => {
+          const createdAt = asset.registeredAt || asset.createdAt || asset.updatedAt;
+          const createdLabel = createdAt ? new Date(createdAt).toLocaleDateString('th-TH') : 'ไม่ระบุวันที่';
+          return `
+            <div class="asset-recent-row">
+              <div class="asset-recent-mark">${escapeHtml((asset.name || '?').charAt(0).toUpperCase())}</div>
+              <div><strong>${escapeHtml(asset.name || 'ไม่ระบุชื่อ')}</strong><span>${escapeHtml(asset.category || 'ไม่ระบุหมวดหมู่')} · ${escapeHtml(asset.location || 'ไม่ระบุสถานที่')}</span></div>
+              <time>${createdLabel}</time>
+            </div>
+          `;
+        }).join('')
+      : '<div class="asset-dashboard-empty">ยังไม่มีทรัพย์สินในระบบ</div>';
 
     assetsGrid.innerHTML = '';
     if (assets.length === 0) {
