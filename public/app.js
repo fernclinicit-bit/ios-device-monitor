@@ -87,10 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const sbDashboard = document.getElementById('sb-dashboard');
   const sbAssets = document.getElementById('sb-assets');
   const sbScanQr = document.getElementById('sb-scan-qr');
-  const sbExportPdf = document.getElementById('sb-export-pdf');
+  const sbExportDevicesPdf = document.getElementById('sb-export-devices-pdf');
+  const sbExportAssetsPdf = document.getElementById('sb-export-assets-pdf');
   const sbSettings = document.getElementById('sb-settings');
   const sbLogout = document.getElementById('sb-logout');
-  const sidebarItems = [sbDashboard, sbAssets, sbScanQr, sbExportPdf, sbSettings, sbLogout];
+  const sidebarItems = [sbDashboard, sbAssets, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
 
   function setActiveSidebar(activeBtn) {
     sidebarItems.forEach(btn => {
@@ -119,9 +120,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnShowScanAsset) btnShowScanAsset.click();
     });
   }
-  if (sbExportPdf) {
-    sbExportPdf.addEventListener('click', () => {
-      if (btnExportPdf) btnExportPdf.click();
+  if (sbExportDevicesPdf) {
+    sbExportDevicesPdf.addEventListener('click', () => {
+      exportToPdf();
+    });
+  }
+  if (sbExportAssetsPdf) {
+    sbExportAssetsPdf.addEventListener('click', () => {
+      exportAssetsToPdf();
     });
   }
   if (sbSettings) {
@@ -1338,6 +1344,123 @@ document.addEventListener('DOMContentLoaded', () => {
     const opt = {
       margin:       [0.4, 0.4, 0.4, 0.4],
       filename:     `Device_Monitor_Report_${new Date().toISOString().slice(0,10)}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    showToast('กำลังสร้างไฟล์ PDF... กรุณารอสักครู่');
+    html2pdf().set(opt).from(element).save();
+  }
+
+  function exportAssetsToPdf() {
+    if (!assets || assets.length === 0) {
+      showToast('ไม่มีข้อมูลสำหรับส่งออก PDF');
+      return;
+    }
+
+    const element = document.createElement('div');
+    element.className = 'pdf-report';
+    
+    const now = new Date().toLocaleString();
+    
+    let tableRows = '';
+    assets.forEach((a, idx) => {
+      const lastScanned = a.lastScannedAt ? new Date(a.lastScannedAt).toLocaleString() : 'Never';
+      
+      tableRows += `
+        <tr>
+          <td style="text-align: center;">${idx + 1}</td>
+          <td>
+            <strong style="color: #111827; font-size: 11px;">${escapeHtml(a.name || '-')}</strong><br>
+            <span style="font-size: 9px; color: #6b7280;">S/N: ${escapeHtml(a.sn || '-')}</span>
+          </td>
+          <td>${escapeHtml(a.category || '-')}</td>
+          <td>${escapeHtml(a.location || '-')}</td>
+          <td>${lastScanned}</td>
+        </tr>
+      `;
+    });
+
+    element.innerHTML = `
+      <style>
+        .pdf-report {
+          font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+          color: #1f2937;
+          padding: 15px;
+          background: #fff;
+        }
+        .pdf-header {
+          border-bottom: 2px solid #e5e7eb;
+          padding-bottom: 12px;
+          margin-bottom: 15px;
+        }
+        .pdf-title {
+          font-size: 20px;
+          font-weight: 800;
+          color: #111827;
+          margin: 0 0 6px 0;
+        }
+        .pdf-meta-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          font-size: 10px;
+          color: #4b5563;
+        }
+        .pdf-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 9.5px;
+          margin-top: 10px;
+        }
+        .pdf-table th {
+          background-color: #f3f4f6;
+          color: #111827;
+          font-weight: 700;
+          text-align: left;
+          padding: 8px;
+          border: 1px solid #e5e7eb;
+        }
+        .pdf-table td {
+          padding: 8px;
+          border: 1px solid #e5e7eb;
+          color: #374151;
+          vertical-align: top;
+        }
+        .pdf-table tr:nth-child(even) {
+          background-color: #f9fafb;
+        }
+      </style>
+      <div class="pdf-header">
+        <h1 class="pdf-title">📋 รายงานระบบนับทรัพย์สิน (Assets Report)</h1>
+        <div class="pdf-meta-grid">
+          <div>
+            <strong>วันที่ออกรายงาน:</strong> ${now}
+          </div>
+          <div style="text-align: right;">
+            <strong>รวมทั้งหมด:</strong> ${assets.length} รายการ
+          </div>
+        </div>
+      </div>
+      <table class="pdf-table">
+        <thead>
+          <tr>
+            <th style="width: 5%; text-align: center;">ลำดับ</th>
+            <th style="width: 30%;">ชื่อทรัพย์สิน (Asset Name)</th>
+            <th style="width: 15%;">หมวดหมู่ (Category)</th>
+            <th style="width: 25%;">สถานที่ (Location)</th>
+            <th style="width: 25%;">ตรวจสอบล่าสุด (Last Scanned)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    `;
+
+    const opt = {
+      margin:       [0.4, 0.4, 0.4, 0.4],
+      filename:     `Assets_Report_${new Date().toISOString().slice(0,10)}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
       jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
