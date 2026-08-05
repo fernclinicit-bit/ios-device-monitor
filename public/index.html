@@ -267,7 +267,7 @@
 
       <!-- ==================== ASSETS SECTION ==================== -->
       <div id="assets-section-content" class="hidden">
-        <section class="stats-grid">
+        <section id="assets-overview-panel" class="stats-grid">
           <div class="stat-card glass-card">
             <span class="stat-title">Total Assets</span>
             <span id="stat-total-assets" class="stat-value">0</span>
@@ -278,9 +278,12 @@
           </div>
         </section>
 
-        <section class="glass-card main-card">
+        <section id="registered-assets-page" class="glass-card main-card hidden">
           <div class="card-header">
-            <h2>Company Assets</h2>
+            <div>
+              <h2>ข้อมูลทรัพย์สินที่ลงทะเบียน</h2>
+              <p class="subtitle" style="margin-top: 0.25rem;">รายการทรัพย์สินทั้งหมดที่บันทึกไว้ในระบบ</p>
+            </div>
             <div>
               <button id="btn-show-add-asset" class="btn btn-secondary">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">

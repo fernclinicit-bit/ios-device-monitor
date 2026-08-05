@@ -46,6 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const navClientPortalBtn = document.getElementById('nav-client-portal-btn');
   const devicesSection = document.getElementById('devices-section-content');
   const assetsSection = document.getElementById('assets-section-content');
+  const assetsOverviewPanel = document.getElementById('assets-overview-panel');
+  const registeredAssetsPage = document.getElementById('registered-assets-page');
 
   // Asset DOM
   const statTotalAssets = document.getElementById('stat-total-assets');
@@ -101,6 +103,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if(activeBtn) activeBtn.classList.add('active');
   }
 
+  function showAssetsSubpage(page) {
+    const showRegisteredAssets = page === 'registered';
+    if (assetsOverviewPanel) assetsOverviewPanel.classList.toggle('hidden', showRegisteredAssets);
+    if (registeredAssetsPage) registeredAssetsPage.classList.toggle('hidden', !showRegisteredAssets);
+  }
+
   if (sbDashboard) {
     sbDashboard.addEventListener('click', () => {
       setActiveSidebar(sbDashboard);
@@ -113,18 +121,18 @@ document.addEventListener('DOMContentLoaded', () => {
     sbAssets.addEventListener('click', () => {
       setActiveSidebar(sbAssets);
       if (navAssetsBtn) navAssetsBtn.click(); // Switch to Assets view
+      showAssetsSubpage('overview');
     });
   }
   if (sbAssetsRegistered) {
     sbAssetsRegistered.addEventListener('click', () => {
       setActiveSidebar(sbAssetsRegistered);
       if (navAssetsBtn) navAssetsBtn.click();
+      showAssetsSubpage('registered');
       if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
       if (editAssetDrawer) editAssetDrawer.classList.add('hidden');
       if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
-      if (assetsSection) {
-        assetsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      if (assetsSection) assetsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
   if (sbScanQr) {
@@ -1509,6 +1517,7 @@ document.addEventListener('DOMContentLoaded', () => {
       assetsSection.classList.remove('hidden');
       devicesSection.classList.add('hidden');
       if (btnShowScanAsset) btnShowScanAsset.classList.remove('hidden');
+      showAssetsSubpage('overview');
       
       navDevicesBtn.style.display = 'none';
       if (btnBackToDashboard) btnBackToDashboard.classList.remove('hidden');
