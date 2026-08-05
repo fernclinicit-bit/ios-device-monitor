@@ -58,7 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const assetUnscannedTotal = document.getElementById('asset-unscanned-total');
   const assetCategorySummary = document.getElementById('asset-category-summary');
   const assetRecentSummary = document.getElementById('asset-recent-summary');
-  const assetsGrid = document.getElementById('assets-grid');
+  const assetsDetailList = document.getElementById('assets-detail-list');
+  const assetSelectedCard = document.getElementById('asset-selected-card');
   const emptyAssetsMsg = document.getElementById('empty-assets-msg');
   const btnShowAddAsset = document.getElementById('btn-show-add-asset');
   
@@ -709,75 +710,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('')
       : '<div class="asset-dashboard-empty">ยังไม่มีทรัพย์สินในระบบ</div>';
 
-    assetsGrid.innerHTML = '';
+    assetsDetailList.innerHTML = '';
+    assetSelectedCard.innerHTML = '<div class="asset-card-placeholder">เลือกรายการทรัพย์สินเพื่อดูรายละเอียดแบบ Card</div>';
+    assetSelectedCard.classList.remove('has-card');
     if (assets.length === 0) {
       emptyAssetsMsg.classList.remove('hidden');
     } else {
       emptyAssetsMsg.classList.add('hidden');
       assets.forEach(a => {
-        const card = document.createElement('article');
-        card.className = 'asset-card glass-card';
-        
-        const lastScannedFormatted = a.lastScannedAt ? new Date(a.lastScannedAt).toLocaleString() : 'Never';
-        
-        // QR URL for printing/scanning (we'll implement scanner.html later)
-        let qrUrl = '';
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          qrUrl = 'http://' + serverIpAddress + ':3000/scanner.html?id=' + a.id;
-        } else {
-          qrUrl = window.location.origin + '/scanner.html?id=' + a.id;
-        }
-
-        const snDisplay = a.sn || a.serialNumber || '-';
-        const imgHtml = a.image 
-          ? `<div style="width: 90px; height: 120px; padding: 6px 6px 16px 6px; background: #fff; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); display: inline-block; transform: rotate(-2deg);">
-               <img src="${a.image}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 2px;">
-             </div>` 
-          : `<div style="width: 90px; height: 120px; background: rgba(0,0,0,0.2); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; color: #6b7280; font-size: 0.8rem; border: 1px dashed rgba(255,255,255,0.1);">No Image</div>`;
-
-        card.innerHTML = `
-          <div class="asset-card-header">
-            <div>
-              <h3>${escapeHtml(a.name)}</h3>
-              <span class="asset-category">${escapeHtml(a.category || 'ไม่ระบุหมวดหมู่')}</span>
-            </div>
-            <div class="asset-card-actions">
-              <button class="btn-action edit" onclick="openEditAssetModal('${a.id}')" title="แก้ไข">✏️</button>
-              <button class="btn-action delete" onclick="confirmDeleteAsset('${a.id}')" title="ลบ">🗑️</button>
-            </div>
-          </div>
-          <div class="asset-card-visuals">
-            ${imgHtml}
-            <div class="asset-qr-block">
-              <div id="inline-qr-${a.id}" style="width: 120px; height: 120px; background: white; padding: 10px; border-radius: 8px;"></div>
-              <span style="font-size: 0.75rem; color: #6b7280;">ID: ${a.id.substring(4)}</span>
-            </div>
-          </div>
-          <div class="asset-card-details">
-            <div><span>หมายเลข S/N</span><strong>${escapeHtml(snDisplay)}</strong></div>
-            <div><span>สถานที่ตั้ง</span><strong>${escapeHtml(a.location || '-')}</strong></div>
-            <div><span>ตรวจสอบล่าสุด</span><strong class="status-cell">
-              <span class="status-indicator ${a.lastScannedAt ? 'active' : 'unverified'}"></span>
-              ${lastScannedFormatted}
-            </strong></div>
-          </div>
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'asset-detail-list-item';
+        item.innerHTML = `
+          <span class="asset-detail-list-copy">
+            <strong>${escapeHtml(a.name || 'ไม่ระบุชื่อ')}</strong>
+            <small>${escapeHtml(a.category || 'ไม่ระบุหมวดหมู่')}</small>
+            <small>S/N: ${escapeHtml(a.sn || a.serialNumber || '-')} · ${escapeHtml(a.location || '-')}</small>
+          </span>
+          <span class="asset-detail-list-arrow" aria-hidden="true">›</span>
         `;
-        assetsGrid.appendChild(card);
-
-        // Render QR Code inline after appending
-        setTimeout(() => {
-          const qrContainer = document.getElementById(`inline-qr-${a.id}`);
-          if (qrContainer) {
-            new QRCode(qrContainer, {
-              text: qrUrl,
-              width: 100,
-              height: 100,
-              colorDark : "#000000",
-              colorLight : "#ffffff",
-              correctLevel : QRCode.CorrectLevel.L
-            });
-          }
-        }, 50);
+        item.addEventListener('click', () => {
+          assetsDetailList.querySelectorAll('.asset-detail-list-item').forEach(button => button.classList.remove('active'));
+          item.classList.add('active');
+          renderSelectedAssetCard(a);
+        });
+        assetsDetailList.appendChild(item);
       });
     }
 
@@ -799,6 +756,60 @@ document.addEventListener('DOMContentLoaded', () => {
         if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
       }
     };
+  }
+
+  function renderSelectedAssetCard(asset) {
+    const lastScannedFormatted = asset.lastScannedAt ? new Date(asset.lastScannedAt).toLocaleString('th-TH') : 'ยังไม่เคยตรวจสอบ';
+    const qrUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? `http://${serverIpAddress}:3000/scanner.html?id=${asset.id}`
+      : `${window.location.origin}/scanner.html?id=${asset.id}`;
+    const qrId = `selected-asset-qr-${asset.id}`;
+    const imageHtml = asset.image
+      ? `<div class="asset-photo-frame"><img src="${asset.image}" alt="${escapeHtml(asset.name || 'รูปทรัพย์สิน')}"></div>`
+      : '<div class="asset-photo-empty">No Image</div>';
+
+    assetSelectedCard.classList.add('has-card');
+    assetSelectedCard.innerHTML = `
+      <article class="asset-card glass-card">
+        <div class="asset-card-header">
+          <div>
+            <h3>${escapeHtml(asset.name || 'ไม่ระบุชื่อ')}</h3>
+            <span class="asset-category">${escapeHtml(asset.category || 'ไม่ระบุหมวดหมู่')}</span>
+          </div>
+          <div class="asset-card-actions">
+            <button class="btn-action edit" onclick="openEditAssetModal('${asset.id}')" title="แก้ไข">✏️</button>
+            <button class="btn-action delete" onclick="confirmDeleteAsset('${asset.id}')" title="ลบ">🗑️</button>
+          </div>
+        </div>
+        <div class="asset-card-visuals">
+          ${imageHtml}
+          <div class="asset-qr-block">
+            <div id="${qrId}" class="asset-inline-qr"></div>
+            <span>ID: ${escapeHtml(asset.id.substring(4))}</span>
+          </div>
+        </div>
+        <div class="asset-card-details">
+          <div><span>หมายเลข S/N</span><strong>${escapeHtml(asset.sn || asset.serialNumber || '-')}</strong></div>
+          <div><span>สถานที่ตั้ง</span><strong>${escapeHtml(asset.location || '-')}</strong></div>
+          <div><span>ตรวจสอบล่าสุด</span><strong class="status-cell">
+            <span class="status-indicator ${asset.lastScannedAt ? 'active' : 'unverified'}"></span>
+            ${lastScannedFormatted}
+          </strong></div>
+        </div>
+      </article>
+    `;
+
+    const qrContainer = document.getElementById(qrId);
+    if (qrContainer) {
+      new QRCode(qrContainer, {
+        text: qrUrl,
+        width: 100,
+        height: 100,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.L
+      });
+    }
   }
 
   // --- Utility: Image Compression ---

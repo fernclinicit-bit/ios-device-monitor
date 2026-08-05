@@ -443,14 +443,30 @@
             </div>
           </div>
 
-          <div class="assets-grid-container" style="margin-top: 1.5rem;">
-            <div id="assets-grid" class="assets-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
-              <!-- Rendered via JS -->
+          <div class="registered-assets-layout">
+            <div class="asset-detail-list-panel">
+              <div class="asset-detail-list-heading">
+                <strong>รายการทรัพย์สิน</strong>
+                <span>กดรายการเพื่อดู Card</span>
+              </div>
+              <div id="assets-detail-list" class="asset-detail-list"></div>
+            </div>
+            <div id="asset-selected-card" class="asset-selected-card">
+              <div class="asset-card-placeholder">เลือกรายการทรัพย์สินเพื่อดูรายละเอียด</div>
             </div>
             <div id="empty-assets-msg" class="empty-state hidden">
               <p>No assets currently tracked in this category. Add a new asset to get started.</p>
             </div>
           </div>
+
+          <section class="glass-card logs-card registered-assets-log">
+            <h2>Activity Audit Log</h2>
+            <div class="logs-container">
+              <ul id="system-logs-list" class="logs-list">
+                <!-- Rendered via JS -->
+              </ul>
+            </div>
+          </section>
         </section>
       </div> <!-- End assets-section-content -->
 
@@ -464,17 +480,6 @@
           <button id="btn-close-qr-modal" style="background: #e2e8f0; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%;">Close</button>
         </div>
       </div>
-
-
-      <!-- SYSTEM LOGS -->
-      <section class="glass-card logs-card">
-        <h2>Activity Audit Log</h2>
-        <div class="logs-container">
-          <ul id="system-logs-list" class="logs-list">
-            <!-- Rendered via JS -->
-          </ul>
-        </div>
-      </section>
     </main>
 
     <!-- ==================== CLIENT (iOS) VIEW ==================== -->
