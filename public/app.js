@@ -86,12 +86,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Sidebar DOM
   const sbDashboard = document.getElementById('sb-dashboard');
   const sbAssets = document.getElementById('sb-assets');
+  const sbAssetsRegistered = document.getElementById('sb-assets-registered');
   const sbScanQr = document.getElementById('sb-scan-qr');
   const sbExportDevicesPdf = document.getElementById('sb-export-devices-pdf');
   const sbExportAssetsPdf = document.getElementById('sb-export-assets-pdf');
   const sbSettings = document.getElementById('sb-settings');
   const sbLogout = document.getElementById('sb-logout');
-  const sidebarItems = [sbDashboard, sbAssets, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
+  const sidebarItems = [sbDashboard, sbAssets, sbAssetsRegistered, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
 
   function setActiveSidebar(activeBtn) {
     sidebarItems.forEach(btn => {
@@ -112,6 +113,18 @@ document.addEventListener('DOMContentLoaded', () => {
     sbAssets.addEventListener('click', () => {
       setActiveSidebar(sbAssets);
       if (navAssetsBtn) navAssetsBtn.click(); // Switch to Assets view
+    });
+  }
+  if (sbAssetsRegistered) {
+    sbAssetsRegistered.addEventListener('click', () => {
+      setActiveSidebar(sbAssetsRegistered);
+      if (navAssetsBtn) navAssetsBtn.click();
+      if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
+      if (editAssetDrawer) editAssetDrawer.classList.add('hidden');
+      if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
+      if (assetsSection) {
+        assetsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     });
   }
   if (sbScanQr) {
