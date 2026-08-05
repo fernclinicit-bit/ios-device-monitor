@@ -34,12 +34,12 @@
       </div>
       <nav class="sidebar-nav">
         <button id="sb-dashboard" class="sidebar-menu-item active">
-          <span class="sb-icon">📊</span>
-          <span class="sb-text">แดชบอร์ด (Dashboard)</span>
+          <span class="sb-icon">💻</span>
+          <span class="sb-text">แดชบอร์ดอุปกรณ์ (Devices)</span>
         </button>
-        <button id="sb-add-asset" class="sidebar-menu-item">
-          <span class="sb-icon">➕</span>
-          <span class="sb-text">เพิ่มทรัพย์สิน (Add Asset)</span>
+        <button id="sb-assets" class="sidebar-menu-item">
+          <span class="sb-icon">🏢</span>
+          <span class="sb-text">ระบบนับทรัพย์สิน (Assets)</span>
         </button>
         <button id="sb-scan-qr" class="sidebar-menu-item">
           <span class="sb-icon">📷</span>
@@ -87,8 +87,8 @@
         <p class="subtitle">ระบบจัดการและตรวจสอบทรัพย์สินภายในองค์กร</p>
       </header>
 
-      <!-- MAIN NAVIGATION TABS -->
-      <div class="nav-tabs" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; flex-wrap: wrap;">
+      <!-- MAIN NAVIGATION TABS (Moved to Sidebar) -->
+      <div class="nav-tabs" style="display: none !important; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; flex-wrap: wrap;">
         <button id="nav-devices-btn" class="btn btn-primary" style="flex: 1; min-width: 200px; padding: 0.75rem; font-size: 1rem;">🗺️ แดชบอร์ดอุปกรณ์ (Devices)</button>
         <button id="nav-assets-btn" class="btn btn-secondary" style="flex: 1; min-width: 200px; padding: 0.75rem; font-size: 1rem;">🖨️ ระบบนับทรัพย์สิน (Assets)</button>
         <button id="btn-show-scan-asset" class="btn hidden" style="flex: 1; min-width: 200px; padding: 0.75rem; font-size: 1rem; background: var(--accent-indigo); color: white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);">📷 สแกน QR (Scan Asset)</button>

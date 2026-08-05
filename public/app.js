@@ -85,12 +85,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Sidebar DOM
   const sbDashboard = document.getElementById('sb-dashboard');
-  const sbAddAsset = document.getElementById('sb-add-asset');
+  const sbAssets = document.getElementById('sb-assets');
   const sbScanQr = document.getElementById('sb-scan-qr');
   const sbExportPdf = document.getElementById('sb-export-pdf');
   const sbSettings = document.getElementById('sb-settings');
   const sbLogout = document.getElementById('sb-logout');
-  const sidebarItems = [sbDashboard, sbAddAsset, sbScanQr, sbExportPdf, sbSettings, sbLogout];
+  const sidebarItems = [sbDashboard, sbAssets, sbScanQr, sbExportPdf, sbSettings, sbLogout];
 
   function setActiveSidebar(activeBtn) {
     sidebarItems.forEach(btn => {
@@ -104,13 +104,13 @@ document.addEventListener('DOMContentLoaded', () => {
       setActiveSidebar(sbDashboard);
       if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
       if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
-      if (navAssetsBtn) navAssetsBtn.click(); // Ensure we are on the assets tab
+      if (navDevicesBtn) navDevicesBtn.click(); // Switch to Devices view
     });
   }
-  if (sbAddAsset) {
-    sbAddAsset.addEventListener('click', () => {
-      setActiveSidebar(sbAddAsset);
-      if (btnShowAddAsset) btnShowAddAsset.click();
+  if (sbAssets) {
+    sbAssets.addEventListener('click', () => {
+      setActiveSidebar(sbAssets);
+      if (navAssetsBtn) navAssetsBtn.click(); // Switch to Assets view
     });
   }
   if (sbScanQr) {
