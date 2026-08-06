@@ -1253,7 +1253,8 @@ header {
 .asset-photo-empty { display: inline-flex; align-items: center; justify-content: center; width: 90px; height: 120px; color: #6b7280; font-size: 0.8rem; background: rgba(0, 0, 0, 0.2); border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 4px; }
 .asset-inline-qr { width: 120px; height: 120px; padding: 10px; background: #fff; border-radius: 8px; }
 .asset-qr-block > span { color: #6b7280; font-size: 0.75rem; }
-.registered-assets-log { margin-top: 1.5rem; }
+.activity-log-page { margin-top: 1.5rem; }
+.activity-log-page .logs-container { margin-top: 1.5rem; }
 
 @media (max-width: 900px) {
   .registered-assets-layout { grid-template-columns: 1fr; }

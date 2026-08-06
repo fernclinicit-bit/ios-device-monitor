@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const assetsSection = document.getElementById('assets-section-content');
   const assetsOverviewPanel = document.getElementById('assets-overview-panel');
   const registeredAssetsPage = document.getElementById('registered-assets-page');
+  const activityLogPage = document.getElementById('activity-log-page');
 
   // Asset DOM
   const statTotalAssets = document.getElementById('stat-total-assets');
@@ -96,12 +97,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const sbDashboard = document.getElementById('sb-dashboard');
   const sbAssets = document.getElementById('sb-assets');
   const sbAssetsRegistered = document.getElementById('sb-assets-registered');
+  const sbActivityLog = document.getElementById('sb-activity-log');
   const sbScanQr = document.getElementById('sb-scan-qr');
   const sbExportDevicesPdf = document.getElementById('sb-export-devices-pdf');
   const sbExportAssetsPdf = document.getElementById('sb-export-assets-pdf');
   const sbSettings = document.getElementById('sb-settings');
   const sbLogout = document.getElementById('sb-logout');
-  const sidebarItems = [sbDashboard, sbAssets, sbAssetsRegistered, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
+  const sidebarItems = [sbDashboard, sbAssets, sbAssetsRegistered, sbActivityLog, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
 
   function setActiveSidebar(activeBtn) {
     sidebarItems.forEach(btn => {
@@ -784,6 +786,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
       }
     };
+  }
+  if (sbActivityLog) {
+    sbActivityLog.addEventListener('click', () => {
+      setActiveSidebar(sbActivityLog);
+      devicesSection.classList.add('hidden');
+      assetsSection.classList.add('hidden');
+      activityLogPage.classList.remove('hidden');
+      if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
+      if (editAssetDrawer) editAssetDrawer.classList.add('hidden');
+      if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
+      activityLogPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
   function renderSelectedAssetCard(asset) {
@@ -1592,6 +1606,7 @@ document.addEventListener('DOMContentLoaded', () => {
       navAssetsBtn.classList.replace('btn-primary', 'btn-secondary');
       devicesSection.classList.remove('hidden');
       assetsSection.classList.add('hidden');
+      activityLogPage.classList.add('hidden');
       if (btnShowScanAsset) btnShowScanAsset.classList.add('hidden');
       
       navDevicesBtn.style.display = 'block';
@@ -1602,6 +1617,7 @@ document.addEventListener('DOMContentLoaded', () => {
       navDevicesBtn.classList.replace('btn-primary', 'btn-secondary');
       assetsSection.classList.remove('hidden');
       devicesSection.classList.add('hidden');
+      activityLogPage.classList.add('hidden');
       if (btnShowScanAsset) btnShowScanAsset.classList.remove('hidden');
       showAssetsSubpage('overview');
       

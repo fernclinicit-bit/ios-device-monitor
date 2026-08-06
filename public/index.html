@@ -47,6 +47,10 @@
             <span>ข้อมูลทรัพย์สินที่ลงทะเบียน</span>
           </button>
         </div>
+        <button id="sb-activity-log" class="sidebar-menu-item">
+          <span class="sb-icon">🕘</span>
+          <span class="sb-text">ประวัติการทำรายการ (Audit Log)</span>
+        </button>
         <button id="sb-scan-qr" class="sidebar-menu-item">
           <span class="sb-icon">📷</span>
           <span class="sb-text">สแกน QR (Scan QR)</span>
@@ -459,16 +463,22 @@
             </div>
           </div>
 
-          <section class="glass-card logs-card registered-assets-log">
-            <h2>Activity Audit Log</h2>
-            <div class="logs-container">
-              <ul id="system-logs-list" class="logs-list">
-                <!-- Rendered via JS -->
-              </ul>
-            </div>
-          </section>
         </section>
       </div> <!-- End assets-section-content -->
+
+      <section id="activity-log-page" class="glass-card main-card activity-log-page hidden">
+        <div class="section-heading">
+          <div>
+            <h2>ประวัติการทำรายการ</h2>
+            <p>Activity Audit Log</p>
+          </div>
+        </div>
+        <div class="logs-container">
+          <ul id="system-logs-list" class="logs-list">
+            <!-- Rendered via JS -->
+          </ul>
+        </div>
+      </section>
 
       <!-- QR CODE MODAL OVERLAY -->
       <div id="qr-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center;">
