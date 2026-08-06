@@ -88,9 +88,9 @@ body {
 /* Main Container */
 .app-container {
   width: 100%;
-  max-width: 1300px;
+  max-width: 1680px;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 2rem clamp(1rem, 2vw, 2rem);
   z-index: 10;
   flex: 1;
 }
