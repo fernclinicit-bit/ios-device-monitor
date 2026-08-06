@@ -51,6 +51,14 @@
           <span class="sb-icon">🕘</span>
           <span class="sb-text">ประวัติการทำรายการ (Audit Log)</span>
         </button>
+        <button id="sb-alert-center" class="sidebar-menu-item">
+          <span class="sb-icon">🔔</span>
+          <span class="sb-text">ศูนย์แจ้งเตือน (Alerts)</span>
+        </button>
+        <button id="sb-asset-analytics" class="sidebar-menu-item">
+          <span class="sb-icon">📊</span>
+          <span class="sb-text">วิเคราะห์ทรัพย์สิน (Analytics)</span>
+        </button>
         <button id="sb-scan-qr" class="sidebar-menu-item">
           <span class="sb-icon">📷</span>
           <span class="sb-text">สแกน QR (Scan QR)</span>
@@ -477,6 +485,38 @@
           <ul id="system-logs-list" class="logs-list">
             <!-- Rendered via JS -->
           </ul>
+        </div>
+      </section>
+
+      <section id="alert-center-page" class="glass-card main-card operations-page hidden">
+        <div class="section-heading">
+          <div>
+            <h2>ศูนย์แจ้งเตือนและงานค้าง</h2>
+            <p>รายการที่ต้องตรวจสอบหรือดำเนินการจากข้อมูลล่าสุด</p>
+          </div>
+          <button id="btn-refresh-alerts" class="btn btn-secondary">↻ อัปเดตข้อมูล</button>
+        </div>
+        <div id="alert-summary-cards" class="operations-summary-grid"></div>
+        <div id="alert-work-list" class="operations-list"></div>
+      </section>
+
+      <section id="asset-analytics-page" class="glass-card main-card operations-page hidden">
+        <div class="section-heading">
+          <div>
+            <h2>วิเคราะห์ทรัพย์สิน</h2>
+            <p>ภาพรวมการตรวจนับ หมวดหมู่ และสถานที่จัดเก็บ</p>
+          </div>
+        </div>
+        <div id="analytics-summary-cards" class="operations-summary-grid"></div>
+        <div class="analytics-panels">
+          <section class="operations-panel">
+            <h3>ทรัพย์สินตามหมวดหมู่</h3>
+            <div id="analytics-category-list" class="analytics-list"></div>
+          </section>
+          <section class="operations-panel">
+            <h3>ทรัพย์สินตามสถานที่</h3>
+            <div id="analytics-location-list" class="analytics-list"></div>
+          </section>
         </div>
       </section>
 

@@ -49,6 +49,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const assetsOverviewPanel = document.getElementById('assets-overview-panel');
   const registeredAssetsPage = document.getElementById('registered-assets-page');
   const activityLogPage = document.getElementById('activity-log-page');
+  const alertCenterPage = document.getElementById('alert-center-page');
+  const assetAnalyticsPage = document.getElementById('asset-analytics-page');
+  const alertSummaryCards = document.getElementById('alert-summary-cards');
+  const alertWorkList = document.getElementById('alert-work-list');
+  const analyticsSummaryCards = document.getElementById('analytics-summary-cards');
+  const analyticsCategoryList = document.getElementById('analytics-category-list');
+  const analyticsLocationList = document.getElementById('analytics-location-list');
+  const btnRefreshAlerts = document.getElementById('btn-refresh-alerts');
 
   // Asset DOM
   const statTotalAssets = document.getElementById('stat-total-assets');
@@ -98,12 +106,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const sbAssets = document.getElementById('sb-assets');
   const sbAssetsRegistered = document.getElementById('sb-assets-registered');
   const sbActivityLog = document.getElementById('sb-activity-log');
+  const sbAlertCenter = document.getElementById('sb-alert-center');
+  const sbAssetAnalytics = document.getElementById('sb-asset-analytics');
   const sbScanQr = document.getElementById('sb-scan-qr');
   const sbExportDevicesPdf = document.getElementById('sb-export-devices-pdf');
   const sbExportAssetsPdf = document.getElementById('sb-export-assets-pdf');
   const sbSettings = document.getElementById('sb-settings');
   const sbLogout = document.getElementById('sb-logout');
-  const sidebarItems = [sbDashboard, sbAssets, sbAssetsRegistered, sbActivityLog, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
+  const sidebarItems = [sbDashboard, sbAssets, sbAssetsRegistered, sbActivityLog, sbAlertCenter, sbAssetAnalytics, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
 
   function setActiveSidebar(activeBtn) {
     sidebarItems.forEach(btn => {
@@ -195,6 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let devices = [];
   let assets = [];
   let renderedAssetsSignature = '';
+  let renderedOperationsSignature = '';
   let selectedAssetId = null;
   let logs = [];
   let currentFilteredDevices = [];
@@ -324,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       updateAdminDashboard();
       updateAssetsDashboard();
+      renderOperationsPages();
       updateClientPortal();
     } catch (err) {
       console.error('Error loading data:', err);
@@ -787,16 +799,41 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
   }
+
+  function hideStandalonePages() {
+    activityLogPage.classList.add('hidden');
+    alertCenterPage.classList.add('hidden');
+    assetAnalyticsPage.classList.add('hidden');
+  }
+
+  function showStandalonePage(page) {
+    devicesSection.classList.add('hidden');
+    assetsSection.classList.add('hidden');
+    hideStandalonePages();
+    page.classList.remove('hidden');
+    page.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
   if (sbActivityLog) {
     sbActivityLog.addEventListener('click', () => {
       setActiveSidebar(sbActivityLog);
-      devicesSection.classList.add('hidden');
-      assetsSection.classList.add('hidden');
-      activityLogPage.classList.remove('hidden');
+      showStandalonePage(activityLogPage);
       if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
       if (editAssetDrawer) editAssetDrawer.classList.add('hidden');
       if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
-      activityLogPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+  if (sbAlertCenter) {
+    sbAlertCenter.addEventListener('click', () => {
+      setActiveSidebar(sbAlertCenter);
+      showStandalonePage(alertCenterPage);
+      renderOperationsPages();
+    });
+  }
+  if (sbAssetAnalytics) {
+    sbAssetAnalytics.addEventListener('click', () => {
+      setActiveSidebar(sbAssetAnalytics);
+      showStandalonePage(assetAnalyticsPage);
+      renderOperationsPages();
     });
   }
 
@@ -853,6 +890,107 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   }
+
+  function renderOperationsPages() {
+    const operationsSignature = JSON.stringify({
+      devices: devices.map(device => [device.id, device.status, device.userName || device.name, device.position]),
+      assets: assets.map(asset => [asset.id, asset.name, asset.category, asset.location, asset.lastScannedAt])
+    });
+    if (operationsSignature === renderedOperationsSignature) return;
+    renderedOperationsSignature = operationsSignature;
+
+    const pendingDevices = devices.filter(device => device.status === 'pending' || device.status === 'unverified');
+    const overdueDevices = devices.filter(device => device.status === 'overdue');
+    const unscannedAssets = assets.filter(asset => !asset.lastScannedAt);
+    const totalAlerts = pendingDevices.length + overdueDevices.length + unscannedAssets.length;
+
+    alertSummaryCards.innerHTML = `
+      <article class="operations-summary-card danger"><span>แจ้งเตือนทั้งหมด</span><strong>${totalAlerts}</strong></article>
+      <article class="operations-summary-card warning"><span>อุปกรณ์รอตรวจสอบ</span><strong>${pendingDevices.length}</strong></article>
+      <article class="operations-summary-card danger"><span>อุปกรณ์เกินกำหนด</span><strong>${overdueDevices.length}</strong></article>
+      <article class="operations-summary-card info"><span>ทรัพย์สินยังไม่สแกน</span><strong>${unscannedAssets.length}</strong></article>
+    `;
+
+    const alertRows = [
+      ...overdueDevices.map(device => ({
+        level: 'danger', icon: '⏰', title: device.userName || device.name || 'ไม่ระบุชื่ออุปกรณ์',
+        detail: `เกินกำหนดตรวจสอบ · ${device.position || 'ไม่ระบุตำแหน่ง'}`, action: 'devices', status: 'overdue'
+      })),
+      ...pendingDevices.map(device => ({
+        level: 'warning', icon: '⌛', title: device.userName || device.name || 'ไม่ระบุชื่ออุปกรณ์',
+        detail: `รอการตรวจสอบ · ${device.position || 'ไม่ระบุตำแหน่ง'}`, action: 'devices', status: device.status
+      })),
+      ...unscannedAssets.map(asset => ({
+        level: 'info', icon: '📦', title: asset.name || 'ไม่ระบุชื่อทรัพย์สิน',
+        detail: `ยังไม่เคยสแกน · ${asset.location || 'ไม่ระบุสถานที่'}`, action: 'assets', status: ''
+      }))
+    ];
+
+    alertWorkList.innerHTML = alertRows.length
+      ? alertRows.map(row => `
+          <article class="operations-list-row ${row.level}">
+            <span class="operations-list-icon">${row.icon}</span>
+            <div><strong>${escapeHtml(row.title)}</strong><span>${escapeHtml(row.detail)}</span></div>
+            <button class="btn btn-secondary operation-action" data-action="${row.action}" data-status="${row.status}">ไปจัดการ</button>
+          </article>
+        `).join('')
+      : '<div class="operations-empty">✓ ไม่มีรายการค้าง ระบบเป็นปกติ</div>';
+
+    const scannedAssets = assets.filter(asset => asset.lastScannedAt).length;
+    const coverage = assets.length ? Math.round((scannedAssets / assets.length) * 100) : 0;
+    const categories = countAssetsBy('category', 'ไม่ระบุหมวดหมู่');
+    const locations = countAssetsBy('location', 'ไม่ระบุสถานที่');
+
+    analyticsSummaryCards.innerHTML = `
+      <article class="operations-summary-card info"><span>ทรัพย์สินทั้งหมด</span><strong>${assets.length}</strong></article>
+      <article class="operations-summary-card success"><span>ตรวจนับแล้ว</span><strong>${scannedAssets}</strong></article>
+      <article class="operations-summary-card warning"><span>ยังไม่ตรวจนับ</span><strong>${assets.length - scannedAssets}</strong></article>
+      <article class="operations-summary-card success"><span>ความครอบคลุม</span><strong>${coverage}%</strong></article>
+    `;
+    analyticsCategoryList.innerHTML = renderAnalyticsRows(categories, assets.length);
+    analyticsLocationList.innerHTML = renderAnalyticsRows(locations, assets.length);
+  }
+
+  function countAssetsBy(field, fallback) {
+    return [...assets.reduce((counts, asset) => {
+      const label = String(asset[field] || fallback).trim() || fallback;
+      counts.set(label, (counts.get(label) || 0) + 1);
+      return counts;
+    }, new Map()).entries()].sort((a, b) => b[1] - a[1]);
+  }
+
+  function renderAnalyticsRows(rows, total) {
+    return rows.length
+      ? rows.map(([label, count]) => `
+          <div class="analytics-row">
+            <div><strong>${escapeHtml(label)}</strong><span>${count} รายการ</span></div>
+            <div class="analytics-meter"><i style="width:${Math.round((count / total) * 100)}%"></i></div>
+            <b>${Math.round((count / total) * 100)}%</b>
+          </div>
+        `).join('')
+      : '<div class="operations-empty">ยังไม่มีข้อมูลสำหรับวิเคราะห์</div>';
+  }
+
+  alertWorkList.addEventListener('click', event => {
+    const button = event.target.closest('.operation-action');
+    if (!button) return;
+    if (button.dataset.action === 'devices') {
+      sbDashboard.click();
+      if (statusFilter && button.dataset.status) {
+        statusFilter.value = button.dataset.status;
+        statusFilter.dispatchEvent(new Event('change'));
+      }
+    } else {
+      sbAssetsRegistered.click();
+    }
+  });
+
+  btnRefreshAlerts.addEventListener('click', async () => {
+    btnRefreshAlerts.disabled = true;
+    await loadData();
+    btnRefreshAlerts.disabled = false;
+    showToast('อัปเดตข้อมูลล่าสุดแล้ว');
+  });
 
   // --- Utility: Image Compression ---
   function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.6) {
@@ -1606,7 +1744,7 @@ document.addEventListener('DOMContentLoaded', () => {
       navAssetsBtn.classList.replace('btn-primary', 'btn-secondary');
       devicesSection.classList.remove('hidden');
       assetsSection.classList.add('hidden');
-      activityLogPage.classList.add('hidden');
+      hideStandalonePages();
       if (btnShowScanAsset) btnShowScanAsset.classList.add('hidden');
       
       navDevicesBtn.style.display = 'block';
@@ -1617,7 +1755,7 @@ document.addEventListener('DOMContentLoaded', () => {
       navDevicesBtn.classList.replace('btn-primary', 'btn-secondary');
       assetsSection.classList.remove('hidden');
       devicesSection.classList.add('hidden');
-      activityLogPage.classList.add('hidden');
+      hideStandalonePages();
       if (btnShowScanAsset) btnShowScanAsset.classList.remove('hidden');
       showAssetsSubpage('overview');
       
