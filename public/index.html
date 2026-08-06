@@ -37,6 +37,12 @@
           <span class="sb-icon">💻</span>
           <span class="sb-text">แดชบอร์ดอุปกรณ์ (Devices)</span>
         </button>
+        <div id="sb-devices-submenu" class="sidebar-submenu">
+          <button id="sb-devices-registered" class="sidebar-submenu-item">
+            <span class="sb-submenu-icon">📱</span>
+            <span>ข้อมูลอุปกรณ์ที่ลงทะเบียน</span>
+          </button>
+        </div>
         <button id="sb-assets" class="sidebar-menu-item">
           <span class="sb-icon">🏢</span>
           <span class="sb-text">ระบบนับทรัพย์สิน (Assets)</span>
@@ -117,32 +123,45 @@
       </div>
 
       <div id="devices-section-content">
+      <div id="devices-overview-panel">
       <!-- STATS OVERVIEW -->
       <section class="stats-grid">
-        <div class="stat-card glass-card">
+        <button class="stat-card glass-card device-stat-action" data-status="all">
           <span class="stat-title">Total iOS Devices</span>
           <span id="stat-total-devices" class="stat-value">0</span>
-        </div>
-        <div class="stat-card glass-card">
+        </button>
+        <button class="stat-card glass-card device-stat-action" data-status="active">
           <span class="stat-title">Active Devices</span>
           <span id="stat-active-devices" class="stat-value success-text">0</span>
-        </div>
-        <div class="stat-card glass-card">
+        </button>
+        <button class="stat-card glass-card device-stat-action" data-status="pending">
           <span class="stat-title">Verification Pending</span>
           <span id="stat-pending-devices" class="stat-value warning-text">0</span>
-        </div>
-        <div class="stat-card glass-card">
+        </button>
+        <button class="stat-card glass-card device-stat-action" data-status="unverified">
           <span class="stat-title">Unverified Devices</span>
           <span id="stat-unverified-devices" class="stat-value muted-text">0</span>
-        </div>
-        <div class="stat-card glass-card">
+        </button>
+        <button class="stat-card glass-card device-stat-action" data-status="overdue">
           <span class="stat-title">Overdue Devices</span>
           <span id="stat-overdue-devices" class="stat-value danger-text">0</span>
-        </div>
+        </button>
       </section>
 
+      <section class="device-dashboard-grid">
+        <article class="glass-card device-dashboard-panel">
+          <div class="device-dashboard-heading"><div><h2>ภาพรวมสถานะอุปกรณ์</h2><p>สัดส่วนจากอุปกรณ์ทั้งหมดในระบบ</p></div><strong id="device-health-percent">0%</strong></div>
+          <div id="device-status-bars" class="device-status-bars"></div>
+        </article>
+        <article class="glass-card device-dashboard-panel">
+          <div class="device-dashboard-heading"><div><h2>รายการที่ต้องดำเนินการ</h2><p>เรียงตามความสำคัญล่าสุด</p></div><button id="btn-view-device-work" class="btn btn-secondary">ดูทั้งหมด</button></div>
+          <div id="device-action-summary" class="device-action-summary"></div>
+        </article>
+      </section>
+      </div>
+
       <!-- DEVICE LISTING -->
-      <section class="glass-card main-card">
+      <section id="devices-management-page" class="glass-card main-card hidden">
         <div class="card-header">
           <h2>Monitored Devices</h2>
           <button id="btn-show-add-device" class="btn btn-secondary">

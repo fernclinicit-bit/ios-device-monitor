@@ -195,6 +195,32 @@ header {
   gap: 0.5rem;
 }
 
+button.stat-card { width: 100%; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.device-stat-action { transition: transform 0.2s ease, border-color 0.2s ease; }
+.device-stat-action:hover { transform: translateY(-2px); border-color: rgba(99, 102, 241, 0.65); }
+.device-dashboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+.device-dashboard-panel { min-height: 310px; }
+.device-dashboard-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.device-dashboard-heading h2 { margin: 0 0 0.25rem; font-size: 1.15rem; }
+.device-dashboard-heading p { margin: 0; color: var(--text-muted); font-size: 0.78rem; }
+.device-dashboard-heading > strong { color: var(--success-color); font-size: 1.2rem; white-space: nowrap; }
+.device-status-bars { display: grid; gap: 0.55rem; }
+.device-status-row { display: grid; grid-template-columns: 80px minmax(80px, 1fr) 36px; align-items: center; gap: 0.8rem; width: 100%; padding: 0.75rem; color: var(--text-color); font: inherit; text-align: left; background: rgba(10, 16, 32, 0.45); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; }
+.device-status-row:hover { background: rgba(99, 102, 241, 0.12); }
+.device-status-row > div { height: 8px; overflow: hidden; background: rgba(148, 163, 184, 0.15); border-radius: 999px; }
+.device-status-row i { display: block; height: 100%; min-width: 2px; border-radius: inherit; }
+.device-status-row i.success { background: #10b981; }
+.device-status-row i.warning { background: #f59e0b; }
+.device-status-row i.muted { background: #94a3b8; }
+.device-status-row i.danger { background: #ef4444; }
+.device-action-summary { display: grid; gap: 0.5rem; }
+.device-action-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; width: 100%; padding: 0.75rem; color: var(--text-color); font: inherit; text-align: left; background: rgba(10, 16, 32, 0.45); border: 1px solid var(--border-color); border-radius: 10px; cursor: pointer; }
+.device-action-row:hover { background: rgba(99, 102, 241, 0.12); }
+.device-action-row > div { display: grid; min-width: 0; }
+.device-action-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.device-action-row span, .device-action-row b { color: var(--text-muted); font-size: 0.72rem; }
+.device-action-row b { text-transform: capitalize; }
+
 .stat-title {
   font-size: 0.85rem;
   text-transform: uppercase;
@@ -1292,6 +1318,7 @@ header {
   .asset-detail-list { max-height: 360px; }
   .operations-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .analytics-panels { grid-template-columns: 1fr; }
+  .device-dashboard-grid { grid-template-columns: 1fr; }
 }
 
 .main-content {

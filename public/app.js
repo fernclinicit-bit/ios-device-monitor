@@ -45,6 +45,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const navAssetsBtn = document.getElementById('nav-assets-btn');
   const navClientPortalBtn = document.getElementById('nav-client-portal-btn');
   const devicesSection = document.getElementById('devices-section-content');
+  const devicesOverviewPanel = document.getElementById('devices-overview-panel');
+  const devicesManagementPage = document.getElementById('devices-management-page');
+  const deviceHealthPercent = document.getElementById('device-health-percent');
+  const deviceStatusBars = document.getElementById('device-status-bars');
+  const deviceActionSummary = document.getElementById('device-action-summary');
+  const btnViewDeviceWork = document.getElementById('btn-view-device-work');
   const assetsSection = document.getElementById('assets-section-content');
   const assetsOverviewPanel = document.getElementById('assets-overview-panel');
   const registeredAssetsPage = document.getElementById('registered-assets-page');
@@ -103,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Sidebar DOM
   const sbDashboard = document.getElementById('sb-dashboard');
+  const sbDevicesRegistered = document.getElementById('sb-devices-registered');
   const sbAssets = document.getElementById('sb-assets');
   const sbAssetsRegistered = document.getElementById('sb-assets-registered');
   const sbActivityLog = document.getElementById('sb-activity-log');
@@ -113,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const sbExportAssetsPdf = document.getElementById('sb-export-assets-pdf');
   const sbSettings = document.getElementById('sb-settings');
   const sbLogout = document.getElementById('sb-logout');
-  const sidebarItems = [sbDashboard, sbAssets, sbAssetsRegistered, sbActivityLog, sbAlertCenter, sbAssetAnalytics, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
+  const sidebarItems = [sbDashboard, sbDevicesRegistered, sbAssets, sbAssetsRegistered, sbActivityLog, sbAlertCenter, sbAssetAnalytics, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
 
   function setActiveSidebar(activeBtn) {
     sidebarItems.forEach(btn => {
@@ -134,8 +141,38 @@ document.addEventListener('DOMContentLoaded', () => {
       if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
       if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
       if (navDevicesBtn) navDevicesBtn.click(); // Switch to Devices view
+      showDevicesSubpage('overview');
     });
   }
+  if (sbDevicesRegistered) {
+    sbDevicesRegistered.addEventListener('click', () => {
+      setActiveSidebar(sbDevicesRegistered);
+      if (navDevicesBtn) navDevicesBtn.click();
+      showDevicesSubpage('registered');
+      if (devicesSection) devicesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  function openDeviceManagement(status = 'all') {
+    sbDevicesRegistered.click();
+    if (statusFilter) {
+      statusFilter.value = status;
+      updateAdminDashboard();
+    }
+  }
+
+  document.querySelectorAll('.device-stat-action').forEach(card => {
+    card.addEventListener('click', () => openDeviceManagement(card.dataset.status || 'all'));
+  });
+  deviceStatusBars.addEventListener('click', event => {
+    const row = event.target.closest('.device-status-row');
+    if (row) openDeviceManagement(row.dataset.status || 'all');
+  });
+  deviceActionSummary.addEventListener('click', event => {
+    const row = event.target.closest('.device-action-row');
+    if (row) openDeviceManagement(row.dataset.status || 'all');
+  });
+  btnViewDeviceWork.addEventListener('click', () => openDeviceManagement('all'));
   if (sbAssets) {
     sbAssets.addEventListener('click', () => {
       setActiveSidebar(sbAssets);
@@ -162,6 +199,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnShowScanAsset) btnShowScanAsset.click();
       if (assetsSection) assetsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+  }
+
+  function showDevicesSubpage(page) {
+    const showManagement = page === 'registered';
+    devicesOverviewPanel.classList.toggle('hidden', showManagement);
+    devicesManagementPage.classList.toggle('hidden', !showManagement);
+    if (showManagement) setTimeout(() => mapInstance?.invalidateSize(), 50);
   }
   if (sbExportDevicesPdf) {
     sbExportDevicesPdf.addEventListener('click', () => {
@@ -207,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- App State ---
   let devices = [];
   let assets = [];
+  let renderedDeviceDashboardSignature = '';
   let renderedAssetsSignature = '';
   let renderedOperationsSignature = '';
   let selectedAssetId = null;
@@ -482,6 +527,39 @@ document.addEventListener('DOMContentLoaded', () => {
     statPendingDevices.textContent = pending;
     statUnverifiedDevices.textContent = unverified;
     statOverdueDevices.textContent = overdue;
+
+    const dashboardSignature = JSON.stringify(devices.map(device => [device.id, device.status, device.userName || device.name, device.position]));
+    if (dashboardSignature !== renderedDeviceDashboardSignature) {
+      renderedDeviceDashboardSignature = dashboardSignature;
+      const healthPercent = total ? Math.round((active / total) * 100) : 0;
+      deviceHealthPercent.textContent = `${healthPercent}% Active`;
+      const statusRows = [
+        ['Active', active, 'success'],
+        ['Pending', pending, 'warning'],
+        ['Unverified', unverified, 'muted'],
+        ['Overdue', overdue, 'danger']
+      ];
+      deviceStatusBars.innerHTML = statusRows.map(([label, count, tone]) => `
+        <button class="device-status-row" data-status="${label.toLowerCase()}">
+          <span>${label}</span><div><i class="${tone}" style="width:${total ? Math.round((count / total) * 100) : 0}%"></i></div><strong>${count}</strong>
+        </button>
+      `).join('');
+
+      const workItems = [
+        ...devices.filter(device => device.status === 'overdue'),
+        ...devices.filter(device => device.status === 'pending'),
+        ...devices.filter(device => device.status === 'unverified')
+      ].slice(0, 5);
+      deviceActionSummary.innerHTML = workItems.length
+        ? workItems.map(device => `
+            <button class="device-action-row" data-status="${escapeHtml(device.status)}">
+              <span class="status-indicator ${device.status === 'overdue' ? 'unverified' : 'active'}"></span>
+              <div><strong>${escapeHtml(device.userName || device.name || 'ไม่ระบุชื่อ')}</strong><span>${escapeHtml(device.position || 'ไม่ระบุตำแหน่ง')}</span></div>
+              <b>${device.status}</b>
+            </button>
+          `).join('')
+        : '<div class="operations-empty">✓ ไม่มีอุปกรณ์ที่ต้องดำเนินการ</div>';
+    }
 
     // Filter devices based on Search Query and Status
     const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
@@ -978,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const button = event.target.closest('.operation-action');
     if (!button) return;
     if (button.dataset.action === 'devices') {
-      sbDashboard.click();
+      sbDevicesRegistered.click();
       if (statusFilter && button.dataset.status) {
         statusFilter.value = button.dataset.status;
         statusFilter.dispatchEvent(new Event('change'));
@@ -1748,6 +1826,7 @@ document.addEventListener('DOMContentLoaded', () => {
       devicesSection.classList.remove('hidden');
       assetsSection.classList.add('hidden');
       hideStandalonePages();
+      showDevicesSubpage('overview');
       if (btnShowScanAsset) btnShowScanAsset.classList.add('hidden');
       
       navDevicesBtn.style.display = 'block';
