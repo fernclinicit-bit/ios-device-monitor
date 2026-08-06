@@ -45,9 +45,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const navAssetsBtn = document.getElementById('nav-assets-btn');
   const navClientPortalBtn = document.getElementById('nav-client-portal-btn');
   const devicesSection = document.getElementById('devices-section-content');
+  const devicesOverviewPanel = document.getElementById('devices-overview-panel');
+  const devicesManagementPage = document.getElementById('devices-management-page');
+  const deviceHealthPercent = document.getElementById('device-health-percent');
+  const deviceStatusBars = document.getElementById('device-status-bars');
+  const deviceActionSummary = document.getElementById('device-action-summary');
+  const btnViewDeviceWork = document.getElementById('btn-view-device-work');
   const assetsSection = document.getElementById('assets-section-content');
   const assetsOverviewPanel = document.getElementById('assets-overview-panel');
   const registeredAssetsPage = document.getElementById('registered-assets-page');
+  const activityLogPage = document.getElementById('activity-log-page');
+  const alertCenterPage = document.getElementById('alert-center-page');
+  const assetAnalyticsPage = document.getElementById('asset-analytics-page');
+  const alertSummaryCards = document.getElementById('alert-summary-cards');
+  const alertWorkList = document.getElementById('alert-work-list');
+  const analyticsSummaryCards = document.getElementById('analytics-summary-cards');
+  const analyticsCategoryList = document.getElementById('analytics-category-list');
+  const analyticsLocationList = document.getElementById('analytics-location-list');
+  const btnRefreshAlerts = document.getElementById('btn-refresh-alerts');
 
   // Asset DOM
   const statTotalAssets = document.getElementById('stat-total-assets');
@@ -58,7 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const assetUnscannedTotal = document.getElementById('asset-unscanned-total');
   const assetCategorySummary = document.getElementById('asset-category-summary');
   const assetRecentSummary = document.getElementById('asset-recent-summary');
-  const assetsGrid = document.getElementById('assets-grid');
+  const assetsDetailList = document.getElementById('assets-detail-list');
+  const assetSelectedCard = document.getElementById('asset-selected-card');
   const emptyAssetsMsg = document.getElementById('empty-assets-msg');
   const btnShowAddAsset = document.getElementById('btn-show-add-asset');
   
@@ -93,14 +109,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Sidebar DOM
   const sbDashboard = document.getElementById('sb-dashboard');
+  const sbDevicesRegistered = document.getElementById('sb-devices-registered');
   const sbAssets = document.getElementById('sb-assets');
   const sbAssetsRegistered = document.getElementById('sb-assets-registered');
+  const sbActivityLog = document.getElementById('sb-activity-log');
+  const sbAlertCenter = document.getElementById('sb-alert-center');
+  const sbAssetAnalytics = document.getElementById('sb-asset-analytics');
   const sbScanQr = document.getElementById('sb-scan-qr');
   const sbExportDevicesPdf = document.getElementById('sb-export-devices-pdf');
   const sbExportAssetsPdf = document.getElementById('sb-export-assets-pdf');
   const sbSettings = document.getElementById('sb-settings');
   const sbLogout = document.getElementById('sb-logout');
-  const sidebarItems = [sbDashboard, sbAssets, sbAssetsRegistered, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
+  const sidebarItems = [sbDashboard, sbDevicesRegistered, sbAssets, sbAssetsRegistered, sbActivityLog, sbAlertCenter, sbAssetAnalytics, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
 
   function setActiveSidebar(activeBtn) {
     sidebarItems.forEach(btn => {
@@ -121,8 +141,38 @@ document.addEventListener('DOMContentLoaded', () => {
       if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
       if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
       if (navDevicesBtn) navDevicesBtn.click(); // Switch to Devices view
+      showDevicesSubpage('overview');
     });
   }
+  if (sbDevicesRegistered) {
+    sbDevicesRegistered.addEventListener('click', () => {
+      setActiveSidebar(sbDevicesRegistered);
+      if (navDevicesBtn) navDevicesBtn.click();
+      showDevicesSubpage('registered');
+      if (devicesSection) devicesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  function openDeviceManagement(status = 'all') {
+    sbDevicesRegistered.click();
+    if (statusFilter) {
+      statusFilter.value = status;
+      updateAdminDashboard();
+    }
+  }
+
+  document.querySelectorAll('.device-stat-action').forEach(card => {
+    card.addEventListener('click', () => openDeviceManagement(card.dataset.status || 'all'));
+  });
+  deviceStatusBars.addEventListener('click', event => {
+    const row = event.target.closest('.device-status-row');
+    if (row) openDeviceManagement(row.dataset.status || 'all');
+  });
+  deviceActionSummary.addEventListener('click', event => {
+    const row = event.target.closest('.device-action-row');
+    if (row) openDeviceManagement(row.dataset.status || 'all');
+  });
+  btnViewDeviceWork.addEventListener('click', () => openDeviceManagement('all'));
   if (sbAssets) {
     sbAssets.addEventListener('click', () => {
       setActiveSidebar(sbAssets);
@@ -144,8 +194,18 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sbScanQr) {
     sbScanQr.addEventListener('click', () => {
       setActiveSidebar(sbScanQr);
+      if (navAssetsBtn) navAssetsBtn.click();
+      showAssetsSubpage('registered');
       if (btnShowScanAsset) btnShowScanAsset.click();
+      if (assetsSection) assetsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+  }
+
+  function showDevicesSubpage(page) {
+    const showManagement = page === 'registered';
+    devicesOverviewPanel.classList.toggle('hidden', showManagement);
+    devicesManagementPage.classList.toggle('hidden', !showManagement);
+    if (showManagement) setTimeout(() => mapInstance?.invalidateSize(), 50);
   }
   if (sbExportDevicesPdf) {
     sbExportDevicesPdf.addEventListener('click', () => {
@@ -191,6 +251,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- App State ---
   let devices = [];
   let assets = [];
+  let renderedDeviceDashboardSignature = '';
+  let renderedAssetsSignature = '';
+  let renderedOperationsSignature = '';
+  let selectedAssetId = null;
   let logs = [];
   let currentFilteredDevices = [];
   let currentFilteredAssets = [];
@@ -319,6 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       updateAdminDashboard();
       updateAssetsDashboard();
+      renderOperationsPages();
       updateClientPortal();
     } catch (err) {
       console.error('Error loading data:', err);
@@ -462,6 +527,39 @@ document.addEventListener('DOMContentLoaded', () => {
     statPendingDevices.textContent = pending;
     statUnverifiedDevices.textContent = unverified;
     statOverdueDevices.textContent = overdue;
+
+    const dashboardSignature = JSON.stringify(devices.map(device => [device.id, device.status, device.userName || device.name, device.position]));
+    if (dashboardSignature !== renderedDeviceDashboardSignature) {
+      renderedDeviceDashboardSignature = dashboardSignature;
+      const healthPercent = total ? Math.round((active / total) * 100) : 0;
+      deviceHealthPercent.textContent = `${healthPercent}% Active`;
+      const statusRows = [
+        ['Active', active, 'success'],
+        ['Pending', pending, 'warning'],
+        ['Unverified', unverified, 'muted'],
+        ['Overdue', overdue, 'danger']
+      ];
+      deviceStatusBars.innerHTML = statusRows.map(([label, count, tone]) => `
+        <button class="device-status-row" data-status="${label.toLowerCase()}">
+          <span>${label}</span><div><i class="${tone}" style="width:${total ? Math.round((count / total) * 100) : 0}%"></i></div><strong>${count}</strong>
+        </button>
+      `).join('');
+
+      const workItems = [
+        ...devices.filter(device => device.status === 'overdue'),
+        ...devices.filter(device => device.status === 'pending'),
+        ...devices.filter(device => device.status === 'unverified')
+      ].slice(0, 5);
+      deviceActionSummary.innerHTML = workItems.length
+        ? workItems.map(device => `
+            <button class="device-action-row" data-status="${escapeHtml(device.status)}">
+              <span class="status-indicator ${device.status === 'overdue' ? 'unverified' : 'active'}"></span>
+              <div><strong>${escapeHtml(device.userName || device.name || 'ไม่ระบุชื่อ')}</strong><span>${escapeHtml(device.position || 'ไม่ระบุตำแหน่ง')}</span></div>
+              <b>${device.status}</b>
+            </button>
+          `).join('')
+        : '<div class="operations-empty">✓ ไม่มีอุปกรณ์ที่ต้องดำเนินการ</div>';
+    }
 
     // Filter devices based on Search Query and Status
     const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
@@ -709,76 +807,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('')
       : '<div class="asset-dashboard-empty">ยังไม่มีทรัพย์สินในระบบ</div>';
 
-    assetsGrid.innerHTML = '';
-    if (assets.length === 0) {
-      emptyAssetsMsg.classList.remove('hidden');
-    } else {
-      emptyAssetsMsg.classList.add('hidden');
-      assets.forEach(a => {
-        const card = document.createElement('article');
-        card.className = 'asset-card glass-card';
-        
-        const lastScannedFormatted = a.lastScannedAt ? new Date(a.lastScannedAt).toLocaleString() : 'Never';
-        
-        // QR URL for printing/scanning (we'll implement scanner.html later)
-        let qrUrl = '';
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          qrUrl = 'http://' + serverIpAddress + ':3000/scanner.html?id=' + a.id;
-        } else {
-          qrUrl = window.location.origin + '/scanner.html?id=' + a.id;
-        }
+    const assetsSignature = JSON.stringify(assets.map(asset => ({
+      id: asset.id,
+      name: asset.name,
+      category: asset.category,
+      sn: asset.sn || asset.serialNumber,
+      location: asset.location,
+      imageKey: asset.image ? `${asset.image.length}:${asset.image.slice(-32)}` : '',
+      lastScannedAt: asset.lastScannedAt
+    })));
 
-        const snDisplay = a.sn || a.serialNumber || '-';
-        const imgHtml = a.image 
-          ? `<div style="width: 90px; height: 120px; padding: 6px 6px 16px 6px; background: #fff; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); display: inline-block; transform: rotate(-2deg);">
-               <img src="${a.image}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 2px;">
-             </div>` 
-          : `<div style="width: 90px; height: 120px; background: rgba(0,0,0,0.2); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; color: #6b7280; font-size: 0.8rem; border: 1px dashed rgba(255,255,255,0.1);">No Image</div>`;
+    if (assetsSignature !== renderedAssetsSignature) {
+      renderedAssetsSignature = assetsSignature;
+      assetsDetailList.innerHTML = '';
 
-        card.innerHTML = `
-          <div class="asset-card-header">
-            <div>
-              <h3>${escapeHtml(a.name)}</h3>
-              <span class="asset-category">${escapeHtml(a.category || 'ไม่ระบุหมวดหมู่')}</span>
-            </div>
-            <div class="asset-card-actions">
-              <button class="btn-action edit" onclick="openEditAssetModal('${a.id}')" title="แก้ไข">✏️</button>
-              <button class="btn-action delete" onclick="confirmDeleteAsset('${a.id}')" title="ลบ">🗑️</button>
-            </div>
-          </div>
-          <div class="asset-card-visuals">
-            ${imgHtml}
-            <div class="asset-qr-block">
-              <div id="inline-qr-${a.id}" style="width: 120px; height: 120px; background: white; padding: 10px; border-radius: 8px;"></div>
-              <span style="font-size: 0.75rem; color: #6b7280;">ID: ${a.id.substring(4)}</span>
-            </div>
-          </div>
-          <div class="asset-card-details">
-            <div><span>หมายเลข S/N</span><strong>${escapeHtml(snDisplay)}</strong></div>
-            <div><span>สถานที่ตั้ง</span><strong>${escapeHtml(a.location || '-')}</strong></div>
-            <div><span>ตรวจสอบล่าสุด</span><strong class="status-cell">
-              <span class="status-indicator ${a.lastScannedAt ? 'active' : 'unverified'}"></span>
-              ${lastScannedFormatted}
-            </strong></div>
-          </div>
+      if (assets.length === 0) {
+        selectedAssetId = null;
+        emptyAssetsMsg.classList.remove('hidden');
+        assetSelectedCard.innerHTML = '<div class="asset-card-placeholder">ยังไม่มีข้อมูลทรัพย์สิน</div>';
+        assetSelectedCard.classList.remove('has-card');
+      } else {
+        emptyAssetsMsg.classList.add('hidden');
+        assets.forEach(a => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'asset-detail-list-item';
+        item.innerHTML = `
+          <span class="asset-detail-list-copy">
+            <strong>${escapeHtml(a.name || 'ไม่ระบุชื่อ')}</strong>
+            <small>${escapeHtml(a.category || 'ไม่ระบุหมวดหมู่')}</small>
+            <small>S/N: ${escapeHtml(a.sn || a.serialNumber || '-')} · ${escapeHtml(a.location || '-')}</small>
+          </span>
+          <span class="asset-detail-list-arrow" aria-hidden="true">›</span>
         `;
-        assetsGrid.appendChild(card);
+        item.addEventListener('click', () => {
+          selectedAssetId = a.id;
+          assetsDetailList.querySelectorAll('.asset-detail-list-item').forEach(button => button.classList.remove('active'));
+          item.classList.add('active');
+          renderSelectedAssetCard(a);
+        });
+        if (a.id === selectedAssetId) item.classList.add('active');
+        assetsDetailList.appendChild(item);
+        });
 
-        // Render QR Code inline after appending
-        setTimeout(() => {
-          const qrContainer = document.getElementById(`inline-qr-${a.id}`);
-          if (qrContainer) {
-            new QRCode(qrContainer, {
-              text: qrUrl,
-              width: 100,
-              height: 100,
-              colorDark : "#000000",
-              colorLight : "#ffffff",
-              correctLevel : QRCode.CorrectLevel.L
-            });
-          }
-        }, 50);
-      });
+        const selectedAsset = assets.find(asset => asset.id === selectedAssetId);
+        if (selectedAsset) {
+          renderSelectedAssetCard(selectedAsset);
+        } else {
+          selectedAssetId = null;
+          assetSelectedCard.innerHTML = '<div class="asset-card-placeholder">เลือกรายการทรัพย์สินเพื่อดูรายละเอียดแบบ Card</div>';
+          assetSelectedCard.classList.remove('has-card');
+        }
+      }
     }
 
     window.confirmDeleteAsset = async (id) => {
@@ -800,6 +880,198 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
   }
+
+  function hideStandalonePages() {
+    activityLogPage.classList.add('hidden');
+    alertCenterPage.classList.add('hidden');
+    assetAnalyticsPage.classList.add('hidden');
+  }
+
+  function showStandalonePage(page) {
+    devicesSection.classList.add('hidden');
+    assetsSection.classList.add('hidden');
+    hideStandalonePages();
+    page.classList.remove('hidden');
+    page.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  if (sbActivityLog) {
+    sbActivityLog.addEventListener('click', () => {
+      setActiveSidebar(sbActivityLog);
+      showStandalonePage(activityLogPage);
+      if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
+      if (editAssetDrawer) editAssetDrawer.classList.add('hidden');
+      if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
+    });
+  }
+  if (sbAlertCenter) {
+    sbAlertCenter.addEventListener('click', () => {
+      setActiveSidebar(sbAlertCenter);
+      showStandalonePage(alertCenterPage);
+      renderOperationsPages();
+    });
+  }
+  if (sbAssetAnalytics) {
+    sbAssetAnalytics.addEventListener('click', () => {
+      setActiveSidebar(sbAssetAnalytics);
+      showStandalonePage(assetAnalyticsPage);
+      renderOperationsPages();
+    });
+  }
+
+  function renderSelectedAssetCard(asset) {
+    const lastScannedFormatted = asset.lastScannedAt ? new Date(asset.lastScannedAt).toLocaleString('th-TH') : 'ยังไม่เคยตรวจสอบ';
+    const qrUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? `http://${serverIpAddress}:3000/scanner.html?id=${asset.id}`
+      : `${window.location.origin}/scanner.html?id=${asset.id}`;
+    const qrId = `selected-asset-qr-${asset.id}`;
+    const imageHtml = asset.image
+      ? `<div class="asset-photo-frame"><img src="${asset.image}" alt="${escapeHtml(asset.name || 'รูปทรัพย์สิน')}"></div>`
+      : '<div class="asset-photo-empty">No Image</div>';
+
+    assetSelectedCard.classList.add('has-card');
+    assetSelectedCard.innerHTML = `
+      <article class="asset-card glass-card">
+        <div class="asset-card-header">
+          <div>
+            <h3>${escapeHtml(asset.name || 'ไม่ระบุชื่อ')}</h3>
+            <span class="asset-category">${escapeHtml(asset.category || 'ไม่ระบุหมวดหมู่')}</span>
+          </div>
+          <div class="asset-card-actions">
+            <button class="btn-action edit" onclick="openEditAssetModal('${asset.id}')" title="แก้ไข">✏️</button>
+            <button class="btn-action delete" onclick="confirmDeleteAsset('${asset.id}')" title="ลบ">🗑️</button>
+          </div>
+        </div>
+        <div class="asset-card-visuals">
+          ${imageHtml}
+          <div class="asset-qr-block">
+            <div id="${qrId}" class="asset-inline-qr"></div>
+            <span>ID: ${escapeHtml(asset.id.substring(4))}</span>
+          </div>
+        </div>
+        <div class="asset-card-details">
+          <div><span>หมายเลข S/N</span><strong>${escapeHtml(asset.sn || asset.serialNumber || '-')}</strong></div>
+          <div><span>สถานที่ตั้ง</span><strong>${escapeHtml(asset.location || '-')}</strong></div>
+          <div><span>ตรวจสอบล่าสุด</span><strong class="status-cell">
+            <span class="status-indicator ${asset.lastScannedAt ? 'active' : 'unverified'}"></span>
+            ${lastScannedFormatted}
+          </strong></div>
+        </div>
+      </article>
+    `;
+
+    const qrContainer = document.getElementById(qrId);
+    if (qrContainer) {
+      new QRCode(qrContainer, {
+        text: qrUrl,
+        width: 100,
+        height: 100,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.L
+      });
+    }
+  }
+
+  function renderOperationsPages() {
+    const operationsSignature = JSON.stringify({
+      devices: devices.map(device => [device.id, device.status, device.userName || device.name, device.position]),
+      assets: assets.map(asset => [asset.id, asset.name, asset.category, asset.location, asset.lastScannedAt])
+    });
+    if (operationsSignature === renderedOperationsSignature) return;
+    renderedOperationsSignature = operationsSignature;
+
+    const pendingDevices = devices.filter(device => device.status === 'pending' || device.status === 'unverified');
+    const overdueDevices = devices.filter(device => device.status === 'overdue');
+    const unscannedAssets = assets.filter(asset => !asset.lastScannedAt);
+    const totalAlerts = pendingDevices.length + overdueDevices.length + unscannedAssets.length;
+
+    alertSummaryCards.innerHTML = `
+      <article class="operations-summary-card danger"><span>แจ้งเตือนทั้งหมด</span><strong>${totalAlerts}</strong></article>
+      <article class="operations-summary-card warning"><span>อุปกรณ์รอตรวจสอบ</span><strong>${pendingDevices.length}</strong></article>
+      <article class="operations-summary-card danger"><span>อุปกรณ์เกินกำหนด</span><strong>${overdueDevices.length}</strong></article>
+      <article class="operations-summary-card info"><span>ทรัพย์สินยังไม่สแกน</span><strong>${unscannedAssets.length}</strong></article>
+    `;
+
+    const alertRows = [
+      ...overdueDevices.map(device => ({
+        level: 'danger', icon: '⏰', title: device.userName || device.name || 'ไม่ระบุชื่ออุปกรณ์',
+        detail: `เกินกำหนดตรวจสอบ · ${device.position || 'ไม่ระบุตำแหน่ง'}`, action: 'devices', status: 'overdue'
+      })),
+      ...pendingDevices.map(device => ({
+        level: 'warning', icon: '⌛', title: device.userName || device.name || 'ไม่ระบุชื่ออุปกรณ์',
+        detail: `รอการตรวจสอบ · ${device.position || 'ไม่ระบุตำแหน่ง'}`, action: 'devices', status: device.status
+      })),
+      ...unscannedAssets.map(asset => ({
+        level: 'info', icon: '📦', title: asset.name || 'ไม่ระบุชื่อทรัพย์สิน',
+        detail: `ยังไม่เคยสแกน · ${asset.location || 'ไม่ระบุสถานที่'}`, action: 'assets', status: ''
+      }))
+    ];
+
+    alertWorkList.innerHTML = alertRows.length
+      ? alertRows.map(row => `
+          <article class="operations-list-row ${row.level}">
+            <span class="operations-list-icon">${row.icon}</span>
+            <div><strong>${escapeHtml(row.title)}</strong><span>${escapeHtml(row.detail)}</span></div>
+            <button class="btn btn-secondary operation-action" data-action="${row.action}" data-status="${row.status}">ไปจัดการ</button>
+          </article>
+        `).join('')
+      : '<div class="operations-empty">✓ ไม่มีรายการค้าง ระบบเป็นปกติ</div>';
+
+    const scannedAssets = assets.filter(asset => asset.lastScannedAt).length;
+    const coverage = assets.length ? Math.round((scannedAssets / assets.length) * 100) : 0;
+    const categories = countAssetsBy('category', 'ไม่ระบุหมวดหมู่');
+    const locations = countAssetsBy('location', 'ไม่ระบุสถานที่');
+
+    analyticsSummaryCards.innerHTML = `
+      <article class="operations-summary-card info"><span>ทรัพย์สินทั้งหมด</span><strong>${assets.length}</strong></article>
+      <article class="operations-summary-card success"><span>ตรวจนับแล้ว</span><strong>${scannedAssets}</strong></article>
+      <article class="operations-summary-card warning"><span>ยังไม่ตรวจนับ</span><strong>${assets.length - scannedAssets}</strong></article>
+      <article class="operations-summary-card success"><span>ความครอบคลุม</span><strong>${coverage}%</strong></article>
+    `;
+    analyticsCategoryList.innerHTML = renderAnalyticsRows(categories, assets.length);
+    analyticsLocationList.innerHTML = renderAnalyticsRows(locations, assets.length);
+  }
+
+  function countAssetsBy(field, fallback) {
+    return [...assets.reduce((counts, asset) => {
+      const label = String(asset[field] || fallback).trim() || fallback;
+      counts.set(label, (counts.get(label) || 0) + 1);
+      return counts;
+    }, new Map()).entries()].sort((a, b) => b[1] - a[1]);
+  }
+
+  function renderAnalyticsRows(rows, total) {
+    return rows.length
+      ? rows.map(([label, count]) => `
+          <div class="analytics-row">
+            <div><strong>${escapeHtml(label)}</strong><span>${count} รายการ</span></div>
+            <div class="analytics-meter"><i style="width:${Math.round((count / total) * 100)}%"></i></div>
+            <b>${Math.round((count / total) * 100)}%</b>
+          </div>
+        `).join('')
+      : '<div class="operations-empty">ยังไม่มีข้อมูลสำหรับวิเคราะห์</div>';
+  }
+
+  alertWorkList.addEventListener('click', event => {
+    const button = event.target.closest('.operation-action');
+    if (!button) return;
+    if (button.dataset.action === 'devices') {
+      sbDevicesRegistered.click();
+      if (statusFilter && button.dataset.status) {
+        statusFilter.value = button.dataset.status;
+        statusFilter.dispatchEvent(new Event('change'));
+      }
+    } else {
+      sbAssetsRegistered.click();
+    }
+  });
+
+  btnRefreshAlerts.addEventListener('click', async () => {
+    btnRefreshAlerts.disabled = true;
+    await loadData();
+    btnRefreshAlerts.disabled = false;
+    showToast('อัปเดตข้อมูลล่าสุดแล้ว');
+  });
 
   // --- Utility: Image Compression ---
   function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.6) {
@@ -1553,6 +1825,8 @@ document.addEventListener('DOMContentLoaded', () => {
       navAssetsBtn.classList.replace('btn-primary', 'btn-secondary');
       devicesSection.classList.remove('hidden');
       assetsSection.classList.add('hidden');
+      hideStandalonePages();
+      showDevicesSubpage('overview');
       if (btnShowScanAsset) btnShowScanAsset.classList.add('hidden');
       
       navDevicesBtn.style.display = 'block';
@@ -1563,6 +1837,7 @@ document.addEventListener('DOMContentLoaded', () => {
       navDevicesBtn.classList.replace('btn-primary', 'btn-secondary');
       assetsSection.classList.remove('hidden');
       devicesSection.classList.add('hidden');
+      hideStandalonePages();
       if (btnShowScanAsset) btnShowScanAsset.classList.remove('hidden');
       showAssetsSubpage('overview');
       
