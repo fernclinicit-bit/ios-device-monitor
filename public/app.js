@@ -157,7 +157,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sbScanQr) {
     sbScanQr.addEventListener('click', () => {
       setActiveSidebar(sbScanQr);
+      if (navAssetsBtn) navAssetsBtn.click();
+      showAssetsSubpage('registered');
       if (btnShowScanAsset) btnShowScanAsset.click();
+      if (assetsSection) assetsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
   if (sbExportDevicesPdf) {
