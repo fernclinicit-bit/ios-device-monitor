@@ -63,6 +63,7 @@ function fetchFromJsonBin() {
 
     const req = https.request(options, (res) => {
       let body = '';
+      res.setEncoding('utf8');
       res.on('data', (chunk) => body += chunk);
       res.on('end', () => {
         if (res.statusCode === 200) {
@@ -98,6 +99,7 @@ function saveToJsonBin(data) {
 
     const req = https.request(options, (res) => {
       let body = '';
+      res.setEncoding('utf8');
       res.on('data', (chunk) => body += chunk);
       res.on('end', () => {
         if (res.statusCode === 200) {
@@ -165,6 +167,7 @@ function getAddressFromCoords(lat, lng) {
 
     https.get(url, options, (res) => {
       let body = '';
+      res.setEncoding('utf8');
       res.on('data', (chunk) => body += chunk);
       res.on('end', () => {
         if (res.statusCode === 200) {
@@ -263,6 +266,9 @@ const mimeTypes = {
 };
 
 const server = http.createServer((req, res) => {
+  // Decode request bodies as a continuous UTF-8 stream so Thai characters
+  // are never corrupted when a multi-byte character spans network chunks.
+  req.setEncoding('utf8');
   // Strip query string for robust routing and file serving
   const qPos = req.url.indexOf('?');
   const pathname = qPos !== -1 ? req.url.substring(0, qPos) : req.url;
