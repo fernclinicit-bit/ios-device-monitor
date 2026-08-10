@@ -322,6 +322,59 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // POST /api/repair-thai-text - Protected maintenance endpoint for repairing corrupted UTF-8 text
+  if (req.method === 'POST' && pathname === '/api/repair-thai-text') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        if (!requireActionPassword(data, res)) return;
+        const deviceRepairs = Array.isArray(data.deviceRepairs) ? data.deviceRepairs : [];
+        const logRepairs = Array.isArray(data.logRepairs) ? data.logRepairs : [];
+        const allowedDeviceFields = ['name', 'userName', 'position', 'accessories', 'address'];
+        const allowedLogFields = ['deviceName', 'action'];
+        const db = readDb();
+        let devicesUpdated = 0;
+        let logsUpdated = 0;
+
+        deviceRepairs.forEach(repair => {
+          const device = db.devices.find(item => item.id === repair.deviceId);
+          if (!device || !repair.fields) return;
+          let changed = false;
+          allowedDeviceFields.forEach(field => {
+            if (typeof repair.fields[field] === 'string' && device[field] !== repair.fields[field]) {
+              device[field] = repair.fields[field];
+              changed = true;
+            }
+          });
+          if (changed) devicesUpdated += 1;
+        });
+
+        logRepairs.forEach(repair => {
+          const log = db.logs.find(item => item.timestamp === repair.timestamp && item.deviceId === repair.deviceId);
+          if (!log || !repair.fields) return;
+          let changed = false;
+          allowedLogFields.forEach(field => {
+            if (typeof repair.fields[field] === 'string' && log[field] !== repair.fields[field]) {
+              log[field] = repair.fields[field];
+              changed = true;
+            }
+          });
+          if (changed) logsUpdated += 1;
+        });
+
+        writeDb(db);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Thai text repaired successfully', devicesUpdated, logsUpdated }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid repair payload' }));
+      }
+    });
+    return;
+  }
+
   // POST /api/register - Register a new device
   if (req.method === 'POST' && pathname === '/api/register') {
     let body = '';
