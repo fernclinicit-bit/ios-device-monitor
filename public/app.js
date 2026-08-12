@@ -105,7 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const qrModalTitle = document.getElementById('qr-modal-title');
   const qrModalSn = document.getElementById('qr-modal-sn');
   const btnCloseQrModal = document.getElementById('btn-close-qr-modal');
+  const btnCloseQrModalIcon = document.getElementById('btn-close-qr-modal-icon');
+  const btnSaveQr = document.getElementById('btn-save-qr');
   const qrcodeContainer = document.getElementById('qrcode-container');
+  let currentQrDownloadName = 'asset-qr';
 
   // Sidebar DOM
   const sbDashboard = document.getElementById('sb-dashboard');
@@ -944,7 +947,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="asset-card-visuals">
           ${imageHtml}
           <div class="asset-qr-block">
-            <div id="${qrId}" class="asset-inline-qr"></div>
+            <button type="button" class="asset-inline-qr asset-qr-open" id="${qrId}" title="กดเพื่อขยาย QR" aria-label="ขยาย QR ของ ${escapeHtml(asset.name || 'ทรัพย์สิน')}"></button>
             <span>ID: ${escapeHtml(asset.id.substring(4))}</span>
           </div>
         </div>
@@ -969,7 +972,50 @@ document.addEventListener('DOMContentLoaded', () => {
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.L
       });
+      qrContainer.addEventListener('click', () => openAssetQrModal(asset, qrUrl));
     }
+  }
+
+  function openAssetQrModal(asset, qrUrl) {
+    qrModalTitle.textContent = asset.name || 'ทรัพย์สิน';
+    qrModalSn.textContent = `S/N: ${asset.sn || asset.serialNumber || '-'}`;
+    currentQrDownloadName = `${asset.name || 'asset'}-${asset.sn || asset.serialNumber || asset.id}-qr`
+      .replace(/[\\/:*?"<>|]+/g, '-')
+      .trim();
+    qrcodeContainer.innerHTML = '';
+    new QRCode(qrcodeContainer, {
+      text: qrUrl,
+      width: 300,
+      height: 300,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    qrModal.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+    btnSaveQr.focus();
+  }
+
+  function closeAssetQrModal() {
+    qrModal.classList.add('hidden');
+    document.body.classList.remove('modal-open');
+  }
+
+  function saveExpandedQr() {
+    const canvas = qrcodeContainer.querySelector('canvas');
+    const image = qrcodeContainer.querySelector('img');
+    const dataUrl = canvas?.toDataURL('image/png') || image?.src;
+    if (!dataUrl) {
+      showToast('ไม่พบรูป QR สำหรับบันทึก');
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `${currentQrDownloadName || 'asset-qr'}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast('บันทึกรูป QR เรียบร้อยแล้ว');
   }
 
   function renderOperationsPages() {
@@ -1957,10 +2003,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (btnCloseQrModal) {
-    btnCloseQrModal.addEventListener('click', () => {
-      qrModal.classList.add('hidden');
+    btnCloseQrModal.addEventListener('click', closeAssetQrModal);
+  }
+  if (btnCloseQrModalIcon) btnCloseQrModalIcon.addEventListener('click', closeAssetQrModal);
+  if (btnSaveQr) btnSaveQr.addEventListener('click', saveExpandedQr);
+  if (qrModal) {
+    qrModal.addEventListener('click', event => {
+      if (event.target === qrModal) closeAssetQrModal();
     });
   }
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && qrModal && !qrModal.classList.contains('hidden')) closeAssetQrModal();
+  });
 
   // Add Asset API
   if (btnSubmitAsset) {

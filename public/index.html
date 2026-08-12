@@ -540,13 +540,17 @@
       </section>
 
       <!-- QR CODE MODAL OVERLAY -->
-      <div id="qr-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center;">
-        <div style="background: #fff; padding: 2rem; border-radius: 12px; text-align: center; color: #000; max-width: 400px; width: 90%;">
-          <h2 id="qr-modal-title" style="margin-bottom: 0.5rem; font-family: 'Plus Jakarta Sans', sans-serif;">Asset Name</h2>
-          <p id="qr-modal-sn" style="color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">S/N: -</p>
-          <div id="qrcode-container" style="display: flex; justify-content: center; margin-bottom: 1.5rem;"></div>
-          <p style="font-size: 0.8rem; color: #444; margin-bottom: 1.5rem;">Scan this QR with a mobile phone to check-in this asset.</p>
-          <button id="btn-close-qr-modal" style="background: #e2e8f0; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%;">Close</button>
+      <div id="qr-modal" class="qr-preview-modal hidden" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+        <div class="qr-preview-dialog">
+          <button id="btn-close-qr-modal-icon" class="qr-preview-close" type="button" aria-label="ปิด">×</button>
+          <h2 id="qr-modal-title">Asset Name</h2>
+          <p id="qr-modal-sn">S/N: -</p>
+          <div id="qrcode-container" class="qr-preview-code"></div>
+          <p class="qr-preview-help">สแกน QR นี้ด้วยโทรศัพท์เพื่อเปิดข้อมูลทรัพย์สิน</p>
+          <div class="qr-preview-actions">
+            <button id="btn-save-qr" class="btn btn-primary" type="button">💾 บันทึกรูป QR</button>
+            <button id="btn-close-qr-modal" class="btn btn-secondary" type="button">ปิด</button>
+          </div>
         </div>
       </div>
     </main>
