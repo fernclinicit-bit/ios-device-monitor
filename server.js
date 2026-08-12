@@ -128,12 +128,11 @@ function initDb(callback) {
         callback();
       })
       .catch((err) => {
-        console.error('Failed to load database from JSONBin cloud, falling back to local file:', err.message);
-        loadLocalDb();
-        callback();
+        console.error('CRITICAL: Failed to load database from JSONBin cloud. To prevent data wipe, shutting down server:', err.message);
+        process.exit(1);
       });
   } else {
-    console.log('Using local file system database.');
+    console.log('Using local file system database. WARNING: On Render free tier, this data will be lost on restart!');
     loadLocalDb();
     callback();
   }
