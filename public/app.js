@@ -1275,8 +1275,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const deviceId = localStorage.getItem('ios_device_id');
     if (!deviceId) return;
-    const password = await requestActionPassword('ยืนยันอุปกรณ์');
-    if (!password) return;
     // Immediate visual feedback
     btnVerifyPresence.style.transform = 'scale(0.95)';
     btnVerifyPresence.disabled = true;
@@ -1307,7 +1305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const response = await fetch('/api/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ deviceId, latitude: lat, longitude: lng, password })
+          body: JSON.stringify({ deviceId, latitude: lat, longitude: lng })
         });
         const data = await response.json();
         

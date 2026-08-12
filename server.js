@@ -438,7 +438,6 @@ const server = http.createServer((req, res) => {
     req.on('end', async () => {
       try {
         const data = JSON.parse(body);
-        if (!requireActionPassword(data, res)) return;
         const { deviceId, latitude, longitude } = data;
 
         if (!deviceId) {
