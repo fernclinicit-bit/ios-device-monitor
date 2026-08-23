@@ -877,7 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('edit-asset-sn').value = asset.sn || asset.serialNumber || '';
         document.getElementById('edit-asset-location').value = asset.location || '';
         document.getElementById('edit-asset-image').value = ''; // Reset file input
-        document.getElementById('edit-asset-camera').value = '';
+        cameraCaptureFiles.edit = null;
         editAssetDrawer.classList.remove('hidden');
         if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
         if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
@@ -2061,7 +2061,7 @@ document.addEventListener('DOMContentLoaded', () => {
           newAssetSn.value = '';
           newAssetLocation.value = '';
           document.getElementById('new-asset-image').value = '';
-          document.getElementById('new-asset-camera').value = '';
+          cameraCaptureFiles.new = null;
           const fname = document.getElementById('new-asset-image-filename');
           if (fname) fname.textContent = 'ยังไม่ได้เลือกรูปภาพ';
           
@@ -2163,13 +2163,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Poll every 1 second for near-instant synchronization across devices
   setInterval(loadData, 1000);
   // --- Image Preview Logic ---
+  const cameraCaptureFiles = { new: null, edit: null };
+
   function getSelectedAssetImage(prefix) {
-    const cameraInput = document.getElementById(`${prefix}-asset-camera`);
     const galleryInput = document.getElementById(`${prefix}-asset-image`);
-    return cameraInput?.files?.[0] || galleryInput?.files?.[0] || null;
+    return cameraCaptureFiles[prefix] || galleryInput?.files?.[0] || null;
   }
 
-  function setupImagePreview(inputId, previewImgId, previewContainerId, filenameLabelId, alternateInputId) {
+  function setupImagePreview(inputId, previewImgId, previewContainerId, filenameLabelId, capturePrefix) {
     const input = document.getElementById(inputId);
     const img = document.getElementById(previewImgId);
     const container = document.getElementById(previewContainerId);
@@ -2178,8 +2179,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (input && img && container) {
       input.addEventListener('change', function() {
         if (this.files && this.files[0]) {
-          const alternateInput = document.getElementById(alternateInputId);
-          if (alternateInput) alternateInput.value = '';
+          cameraCaptureFiles[capturePrefix] = null;
           if (filenameLabel) filenameLabel.textContent = this.files[0].name;
           const reader = new FileReader();
           reader.onload = function(e) {
@@ -2198,10 +2198,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  setupImagePreview('new-asset-camera', 'new-asset-image-preview', 'new-asset-image-preview-container', 'new-asset-image-filename', 'new-asset-image');
-  setupImagePreview('new-asset-image', 'new-asset-image-preview', 'new-asset-image-preview-container', 'new-asset-image-filename', 'new-asset-camera');
-  setupImagePreview('edit-asset-camera', 'edit-asset-image-preview', 'edit-asset-image-preview-container', 'edit-asset-image-filename', 'edit-asset-image');
-  setupImagePreview('edit-asset-image', 'edit-asset-image-preview', 'edit-asset-image-preview-container', 'edit-asset-image-filename', 'edit-asset-camera');
+  setupImagePreview('new-asset-image', 'new-asset-image-preview', 'new-asset-image-preview-container', 'new-asset-image-filename', 'new');
+  setupImagePreview('edit-asset-image', 'edit-asset-image-preview', 'edit-asset-image-preview-container', 'edit-asset-image-filename', 'edit');
 
   // Override window.openEditAssetModal to clear image preview
   const originalOpenEditAssetModal = window.openEditAssetModal;
@@ -2209,10 +2207,125 @@ document.addEventListener('DOMContentLoaded', () => {
     originalOpenEditAssetModal(id);
     document.getElementById('edit-asset-image-preview').src = '';
     document.getElementById('edit-asset-image-preview-container').classList.add('hidden');
-    document.getElementById('edit-asset-camera').value = '';
+    cameraCaptureFiles.edit = null;
     const fname = document.getElementById('edit-asset-image-filename');
     if (fname) fname.textContent = 'ยังไม่ได้เลือกรูปภาพ';
   };
+
+  // --- Forced Camera Capture Logic ---
+  const cameraModal = document.getElementById('camera-capture-modal');
+  const cameraVideo = document.getElementById('camera-capture-video');
+  const cameraCanvas = document.getElementById('camera-capture-canvas');
+  const cameraStatus = document.getElementById('camera-capture-status');
+  const btnOpenNewCamera = document.getElementById('btn-open-new-camera');
+  const btnOpenEditCamera = document.getElementById('btn-open-edit-camera');
+  const btnCloseCamera = document.getElementById('btn-close-camera');
+  const btnCapturePhoto = document.getElementById('btn-capture-photo');
+  const btnRetakePhoto = document.getElementById('btn-retake-photo');
+  const btnUsePhoto = document.getElementById('btn-use-photo');
+  let cameraStream = null;
+  let cameraTarget = null;
+  let capturedCameraBlob = null;
+
+  function stopCameraStream() {
+    if (cameraStream) cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+    cameraVideo.srcObject = null;
+  }
+
+  function closeCameraModal() {
+    stopCameraStream();
+    cameraModal.classList.add('hidden');
+    document.body.classList.remove('modal-open');
+    capturedCameraBlob = null;
+  }
+
+  function setCameraLiveView() {
+    cameraVideo.classList.remove('hidden');
+    cameraCanvas.classList.add('hidden');
+    btnCapturePhoto.classList.remove('hidden');
+    btnRetakePhoto.classList.add('hidden');
+    btnUsePhoto.classList.add('hidden');
+  }
+
+  async function openForcedCamera(target) {
+    document.querySelectorAll('.image-source-picker[open]').forEach(picker => picker.open = false);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      showToast('อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับการเปิดกล้อง');
+      return;
+    }
+    cameraTarget = target;
+    capturedCameraBlob = null;
+    cameraModal.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+    cameraStatus.textContent = 'กำลังเปิดกล้อง...';
+    setCameraLiveView();
+    btnCapturePhoto.disabled = true;
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false
+      });
+      cameraVideo.srcObject = cameraStream;
+      await cameraVideo.play();
+      cameraStatus.textContent = 'จัดวางทรัพย์สินให้อยู่ในกรอบ แล้วกดถ่ายภาพ';
+      btnCapturePhoto.disabled = false;
+    } catch (error) {
+      console.error('Unable to open camera', error);
+      cameraStatus.textContent = 'ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตสิทธิ์กล้องในเบราว์เซอร์';
+      btnCapturePhoto.disabled = true;
+    }
+  }
+
+  btnCapturePhoto?.addEventListener('click', () => {
+    const width = cameraVideo.videoWidth;
+    const height = cameraVideo.videoHeight;
+    if (!width || !height) return;
+    cameraCanvas.width = width;
+    cameraCanvas.height = height;
+    cameraCanvas.getContext('2d').drawImage(cameraVideo, 0, 0, width, height);
+    cameraCanvas.toBlob(blob => {
+      if (!blob) return;
+      capturedCameraBlob = blob;
+      cameraVideo.classList.add('hidden');
+      cameraCanvas.classList.remove('hidden');
+      btnCapturePhoto.classList.add('hidden');
+      btnRetakePhoto.classList.remove('hidden');
+      btnUsePhoto.classList.remove('hidden');
+      cameraStatus.textContent = 'ตรวจสอบภาพ แล้วเลือกใช้ภาพนี้หรือถ่ายใหม่';
+    }, 'image/jpeg', 0.9);
+  });
+
+  btnRetakePhoto?.addEventListener('click', () => {
+    capturedCameraBlob = null;
+    setCameraLiveView();
+    cameraStatus.textContent = 'จัดวางทรัพย์สินให้อยู่ในกรอบ แล้วกดถ่ายภาพ';
+  });
+
+  btnUsePhoto?.addEventListener('click', () => {
+    if (!capturedCameraBlob || !cameraTarget) return;
+    const file = new File([capturedCameraBlob], `asset-camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    cameraCaptureFiles[cameraTarget] = file;
+    const galleryInput = document.getElementById(`${cameraTarget}-asset-image`);
+    if (galleryInput) galleryInput.value = '';
+    const preview = document.getElementById(`${cameraTarget}-asset-image-preview`);
+    const previewContainer = document.getElementById(`${cameraTarget}-asset-image-preview-container`);
+    const filename = document.getElementById(`${cameraTarget}-asset-image-filename`);
+    preview.src = cameraCanvas.toDataURL('image/jpeg', 0.9);
+    previewContainer.classList.remove('hidden');
+    filename.textContent = 'ภาพจากกล้อง';
+    closeCameraModal();
+  });
+
+  btnOpenNewCamera?.addEventListener('click', () => openForcedCamera('new'));
+  btnOpenEditCamera?.addEventListener('click', () => openForcedCamera('edit'));
+  btnCloseCamera?.addEventListener('click', closeCameraModal);
+  cameraModal?.addEventListener('click', event => {
+    if (event.target === cameraModal) closeCameraModal();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && cameraModal && !cameraModal.classList.contains('hidden')) closeCameraModal();
+  });
 
   // --- Location Picker Map Logic ---
   const locationPickerModal = document.getElementById('location-picker-modal');

@@ -1378,9 +1378,14 @@ button.stat-card { width: 100%; color: inherit; font: inherit; text-align: left;
 
 .image-source-option {
   display: block;
+  width: 100%;
   padding: 0.7rem 0.85rem;
+  border: 0;
   border-radius: 7px;
+  background: transparent;
   color: var(--text-main);
+  font: inherit;
+  text-align: left;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -1388,4 +1393,44 @@ button.stat-card { width: 100%; color: inherit; font: inherit; text-align: left;
 .image-source-option:hover,
 .image-source-option:focus-visible {
   background: rgba(99, 102, 241, 0.18);
+}
+
+.camera-capture-dialog {
+  width: min(94vw, 620px);
+}
+
+.camera-capture-status {
+  margin: 0 0 0.8rem;
+  color: var(--text-muted);
+}
+
+.camera-capture-stage {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 300px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: #05070d;
+}
+
+.camera-capture-stage video,
+.camera-capture-stage canvas {
+  display: block;
+  width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+}
+
+.camera-capture-stage .hidden {
+  display: none;
+}
+
+.camera-capture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }

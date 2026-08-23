@@ -414,13 +414,12 @@
                       เพิ่มรูปภาพ
                     </summary>
                     <div class="image-source-menu">
-                      <label for="new-asset-camera" class="image-source-option">📷 ถ่ายรูป</label>
+                      <button type="button" id="btn-open-new-camera" class="image-source-option">📷 ถ่ายรูป</button>
                       <label for="new-asset-image" class="image-source-option">🖼️ เลือกภาพ</label>
                     </div>
                   </details>
                   <span id="new-asset-image-filename" style="color: var(--text-muted); font-size: 0.85rem;">ยังไม่ได้เลือกรูปภาพ</span>
                 </div>
-                <input type="file" id="new-asset-camera" accept="image/*" capture="environment" style="display: none;">
                 <input type="file" id="new-asset-image" accept="image/*" style="display: none;">
                 <div id="new-asset-image-preview-container" class="hidden" style="margin-top: 1rem; text-align: center;">
                   <div style="display: inline-block; width: 240px; height: 320px; border: 2px dashed rgba(255,255,255,0.3); border-radius: 8px; padding: 0.25rem; background: rgba(0,0,0,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
@@ -467,13 +466,12 @@
                       เพิ่มรูปภาพ
                     </summary>
                     <div class="image-source-menu">
-                      <label for="edit-asset-camera" class="image-source-option">📷 ถ่ายรูป</label>
+                      <button type="button" id="btn-open-edit-camera" class="image-source-option">📷 ถ่ายรูป</button>
                       <label for="edit-asset-image" class="image-source-option">🖼️ เลือกภาพ</label>
                     </div>
                   </details>
                   <span id="edit-asset-image-filename" style="color: var(--text-muted); font-size: 0.85rem;">ยังไม่ได้เลือกรูปภาพ</span>
                 </div>
-                <input type="file" id="edit-asset-camera" accept="image/*" capture="environment" style="display: none;">
                 <input type="file" id="edit-asset-image" accept="image/*" style="display: none;">
                 <div id="edit-asset-image-preview-container" class="hidden" style="margin-top: 1rem; text-align: center;">
                   <div style="display: inline-block; width: 240px; height: 320px; border: 2px dashed rgba(255,255,255,0.3); border-radius: 8px; padding: 0.25rem; background: rgba(0,0,0,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
@@ -667,6 +665,24 @@
       <div style="display: flex; gap: 1rem; justify-content: flex-end;">
         <button id="btn-close-location-picker" class="btn btn-secondary">ยกเลิก</button>
         <button id="btn-confirm-location-picker" class="btn btn-primary">ยืนยันตำแหน่ง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Camera Capture Modal -->
+  <div id="camera-capture-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="camera-capture-title">
+    <div class="modal-content camera-capture-dialog">
+      <h2 id="camera-capture-title">📷 ถ่ายรูปทรัพย์สิน</h2>
+      <p id="camera-capture-status" class="camera-capture-status">กำลังเปิดกล้อง...</p>
+      <div class="camera-capture-stage">
+        <video id="camera-capture-video" autoplay playsinline muted></video>
+        <canvas id="camera-capture-canvas" class="hidden"></canvas>
+      </div>
+      <div class="camera-capture-actions">
+        <button id="btn-close-camera" class="btn btn-secondary" type="button">ยกเลิก</button>
+        <button id="btn-capture-photo" class="btn btn-primary" type="button">📸 ถ่ายภาพ</button>
+        <button id="btn-retake-photo" class="btn btn-secondary hidden" type="button">ถ่ายใหม่</button>
+        <button id="btn-use-photo" class="btn btn-primary hidden" type="button">ใช้ภาพนี้</button>
       </div>
     </div>
   </div>
