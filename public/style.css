@@ -1342,3 +1342,50 @@ button.stat-card { width: 100%; color: inherit; font: inherit; text-align: left;
   overflow-x: hidden;
 }
 
+.image-source-picker {
+  position: relative;
+}
+
+.image-source-picker summary {
+  list-style: none;
+}
+
+.image-source-picker summary::-webkit-details-marker {
+  display: none;
+}
+
+.image-source-trigger {
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+}
+
+.image-source-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 170px;
+  padding: 0.4rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: #151827;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.image-source-option {
+  display: block;
+  padding: 0.7rem 0.85rem;
+  border-radius: 7px;
+  color: var(--text-main);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.image-source-option:hover,
+.image-source-option:focus-visible {
+  background: rgba(99, 102, 241, 0.18);
+}

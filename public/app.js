@@ -877,6 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('edit-asset-sn').value = asset.sn || asset.serialNumber || '';
         document.getElementById('edit-asset-location').value = asset.location || '';
         document.getElementById('edit-asset-image').value = ''; // Reset file input
+        document.getElementById('edit-asset-camera').value = '';
         editAssetDrawer.classList.remove('hidden');
         if (addAssetDrawer) addAssetDrawer.classList.add('hidden');
         if (scanAssetDrawer) scanAssetDrawer.classList.add('hidden');
@@ -2025,7 +2026,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       let base64Image = null;
-      const imageFile = document.getElementById('new-asset-image').files[0];
+      const imageFile = getSelectedAssetImage('new');
       if (imageFile) {
         try {
           btnSubmitAsset.textContent = 'Processing Image...';
@@ -2060,6 +2061,7 @@ document.addEventListener('DOMContentLoaded', () => {
           newAssetSn.value = '';
           newAssetLocation.value = '';
           document.getElementById('new-asset-image').value = '';
+          document.getElementById('new-asset-camera').value = '';
           const fname = document.getElementById('new-asset-image-filename');
           if (fname) fname.textContent = 'ยังไม่ได้เลือกรูปภาพ';
           
@@ -2089,7 +2091,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       let base64Image = undefined;
-      const imageFile = document.getElementById('edit-asset-image').files[0];
+      const imageFile = getSelectedAssetImage('edit');
       if (imageFile) {
         try {
           btnSaveEditAsset.textContent = 'Processing Image...';
@@ -2161,15 +2163,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // Poll every 1 second for near-instant synchronization across devices
   setInterval(loadData, 1000);
   // --- Image Preview Logic ---
-  function setupImagePreview(inputId, previewImgId, previewContainerId) {
+  function getSelectedAssetImage(prefix) {
+    const cameraInput = document.getElementById(`${prefix}-asset-camera`);
+    const galleryInput = document.getElementById(`${prefix}-asset-image`);
+    return cameraInput?.files?.[0] || galleryInput?.files?.[0] || null;
+  }
+
+  function setupImagePreview(inputId, previewImgId, previewContainerId, filenameLabelId, alternateInputId) {
     const input = document.getElementById(inputId);
     const img = document.getElementById(previewImgId);
     const container = document.getElementById(previewContainerId);
-    const filenameLabel = document.getElementById(inputId + '-filename');
+    const filenameLabel = document.getElementById(filenameLabelId);
     
     if (input && img && container) {
       input.addEventListener('change', function() {
         if (this.files && this.files[0]) {
+          const alternateInput = document.getElementById(alternateInputId);
+          if (alternateInput) alternateInput.value = '';
           if (filenameLabel) filenameLabel.textContent = this.files[0].name;
           const reader = new FileReader();
           reader.onload = function(e) {
@@ -2177,6 +2187,8 @@ document.addEventListener('DOMContentLoaded', () => {
             container.classList.remove('hidden');
           }
           reader.readAsDataURL(this.files[0]);
+          const picker = this.closest('.input-field')?.querySelector('.image-source-picker');
+          if (picker) picker.open = false;
         } else {
           if (filenameLabel) filenameLabel.textContent = 'ยังไม่ได้เลือกรูปภาพ';
           img.src = '';
@@ -2186,8 +2198,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  setupImagePreview('new-asset-image', 'new-asset-image-preview', 'new-asset-image-preview-container');
-  setupImagePreview('edit-asset-image', 'edit-asset-image-preview', 'edit-asset-image-preview-container');
+  setupImagePreview('new-asset-camera', 'new-asset-image-preview', 'new-asset-image-preview-container', 'new-asset-image-filename', 'new-asset-image');
+  setupImagePreview('new-asset-image', 'new-asset-image-preview', 'new-asset-image-preview-container', 'new-asset-image-filename', 'new-asset-camera');
+  setupImagePreview('edit-asset-camera', 'edit-asset-image-preview', 'edit-asset-image-preview-container', 'edit-asset-image-filename', 'edit-asset-image');
+  setupImagePreview('edit-asset-image', 'edit-asset-image-preview', 'edit-asset-image-preview-container', 'edit-asset-image-filename', 'edit-asset-camera');
 
   // Override window.openEditAssetModal to clear image preview
   const originalOpenEditAssetModal = window.openEditAssetModal;
@@ -2195,6 +2209,7 @@ document.addEventListener('DOMContentLoaded', () => {
     originalOpenEditAssetModal(id);
     document.getElementById('edit-asset-image-preview').src = '';
     document.getElementById('edit-asset-image-preview-container').classList.add('hidden');
+    document.getElementById('edit-asset-camera').value = '';
     const fname = document.getElementById('edit-asset-image-filename');
     if (fname) fname.textContent = 'ยังไม่ได้เลือกรูปภาพ';
   };
