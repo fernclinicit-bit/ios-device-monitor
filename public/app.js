@@ -260,13 +260,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (showManagement) setTimeout(() => mapInstance?.invalidateSize(), 50);
   }
   if (sbExportDevicesPdf) {
-    sbExportDevicesPdf.addEventListener('click', () => {
-      exportToPdf();
+    sbExportDevicesPdf.addEventListener('click', async () => {
+      setActiveSidebar(sbExportDevicesPdf);
+      await exportToPdf();
     });
   }
   if (sbExportAssetsPdf) {
-    sbExportAssetsPdf.addEventListener('click', () => {
-      exportAssetsToPdf();
+    sbExportAssetsPdf.addEventListener('click', async () => {
+      setActiveSidebar(sbExportAssetsPdf);
+      await exportAssetsToPdf();
     });
   }
   if (sbSettings) {
@@ -1644,7 +1646,43 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // PDF Report Export function using html2pdf.js
-  function exportToPdf() {
+  async function savePdfReport(element, options) {
+    if (typeof window.html2pdf !== 'function') {
+      showToast('ไม่สามารถโหลดระบบสร้าง PDF ได้ กรุณารีเฟรชหน้าแล้วลองใหม่');
+      return;
+    }
+
+    // html2canvas can produce an empty PDF from a detached element. Mount the
+    // report outside the viewport so it has real layout dimensions while rendering.
+    const renderHost = document.createElement('div');
+    renderHost.setAttribute('aria-hidden', 'true');
+    Object.assign(renderHost.style, {
+      position: 'fixed',
+      left: '-20000px',
+      top: '0',
+      width: '1120px',
+      minHeight: '1px',
+      background: '#ffffff',
+      zIndex: '-9999',
+      pointerEvents: 'none'
+    });
+    renderHost.appendChild(element);
+    document.body.appendChild(renderHost);
+
+    try {
+      if (document.fonts?.ready) await document.fonts.ready;
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await window.html2pdf().set(options).from(element).save();
+      showToast('สร้างรายงาน PDF เรียบร้อยแล้ว');
+    } catch (error) {
+      console.error('PDF export failed', error);
+      showToast('สร้างรายงาน PDF ไม่สำเร็จ กรุณาลองใหม่');
+    } finally {
+      renderHost.remove();
+    }
+  }
+
+  async function exportToPdf() {
     if (!currentFilteredDevices || currentFilteredDevices.length === 0) {
       showToast('ไม่มีข้อมูลสำหรับส่งออก PDF');
       return;
@@ -1778,15 +1816,15 @@ document.addEventListener('DOMContentLoaded', () => {
       margin:       [0.4, 0.4, 0.4, 0.4],
       filename:     `Device_Monitor_Report_${new Date().toISOString().slice(0,10)}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
       jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
     };
 
     showToast('กำลังสร้างไฟล์ PDF... กรุณารอสักครู่');
-    html2pdf().set(opt).from(element).save();
+    await savePdfReport(element, opt);
   }
 
-  function exportAssetsToPdf() {
+  async function exportAssetsToPdf() {
     if (!assets || assets.length === 0) {
       showToast('ไม่มีข้อมูลสำหรับส่งออก PDF');
       return;
@@ -1895,17 +1933,17 @@ document.addEventListener('DOMContentLoaded', () => {
       margin:       [0.4, 0.4, 0.4, 0.4],
       filename:     `Assets_Report_${new Date().toISOString().slice(0,10)}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
       jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
     };
 
     showToast('กำลังสร้างไฟล์ PDF... กรุณารอสักครู่');
-    html2pdf().set(opt).from(element).save();
+    await savePdfReport(element, opt);
   }
 
   // Bind Export PDF Click Listener
   if (btnExportPdf) {
-    btnExportPdf.addEventListener('click', exportToPdf);
+    btnExportPdf.addEventListener('click', () => exportToPdf());
   }
 
   // --- Asset Management Event Listeners ---
