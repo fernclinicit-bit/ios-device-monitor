@@ -124,13 +124,62 @@ document.addEventListener('DOMContentLoaded', () => {
   const sbSettings = document.getElementById('sb-settings');
   const sbLogout = document.getElementById('sb-logout');
   const sidebarItems = [sbDashboard, sbDevicesRegistered, sbAssets, sbAssetsRegistered, sbActivityLog, sbAlertCenter, sbAssetAnalytics, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
+  const sidebarMotionEnabled = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function animateSidebarSelection(activeBtn) {
+    if (!window.gsap || !sidebarMotionEnabled || !activeBtn) return;
+    window.gsap.killTweensOf(activeBtn);
+    window.gsap.fromTo(activeBtn,
+      { scale: 0.975, x: -3 },
+      { scale: 1, x: 0, duration: 0.42, ease: 'back.out(2)' }
+    );
+    const icon = activeBtn.querySelector('.sb-icon, .sb-submenu-icon');
+    if (icon) {
+      window.gsap.fromTo(icon,
+        { scale: 0.78, rotate: -9 },
+        { scale: 1, rotate: 0, duration: 0.5, ease: 'elastic.out(1, 0.55)' }
+      );
+    }
+  }
 
   function setActiveSidebar(activeBtn) {
     sidebarItems.forEach(btn => {
       if(btn) btn.classList.remove('active');
     });
     if(activeBtn) activeBtn.classList.add('active');
+    animateSidebarSelection(activeBtn);
   }
+
+  function initializeLiquidGlassMenu() {
+    const sidebar = document.querySelector('.sidebar');
+    const logo = document.querySelector('.sidebar-logo');
+    const menuItems = sidebarItems.filter(Boolean);
+    if (!window.gsap || !sidebarMotionEnabled || !sidebar) return;
+
+    window.gsap.set(sidebar, { visibility: 'visible' });
+    const intro = window.gsap.timeline({ defaults: { ease: 'power3.out' } });
+    intro.from(sidebar, { x: -34, opacity: 0, duration: 0.68 })
+      .from(logo, { y: -14, opacity: 0, duration: 0.42 }, '-=0.38')
+      .from(menuItems, { x: -18, opacity: 0, duration: 0.38, stagger: 0.045 }, '-=0.25');
+
+    document.querySelectorAll('.sidebar-menu-item, .sidebar-submenu-item').forEach(item => {
+      item.addEventListener('pointerenter', () => {
+        window.gsap.to(item, { x: 5, scale: 1.012, duration: 0.25, ease: 'power2.out', overwrite: true });
+        const icon = item.querySelector('.sb-icon, .sb-submenu-icon');
+        if (icon) window.gsap.to(icon, { y: -2, scale: 1.12, duration: 0.28, ease: 'back.out(2)', overwrite: true });
+      });
+      item.addEventListener('pointerleave', () => {
+        window.gsap.to(item, { x: 0, scale: 1, duration: 0.32, ease: 'power2.out', overwrite: true });
+        const icon = item.querySelector('.sb-icon, .sb-submenu-icon');
+        if (icon) window.gsap.to(icon, { y: 0, scale: 1, duration: 0.3, ease: 'power2.out', overwrite: true });
+      });
+      item.addEventListener('click', () => {
+        window.gsap.fromTo(item, { '--glass-pulse': 0.7 }, { '--glass-pulse': 0, duration: 0.7, ease: 'power2.out' });
+      });
+    });
+  }
+
+  requestAnimationFrame(initializeLiquidGlassMenu);
 
   function showAssetsSubpage(page) {
     const showRegisteredAssets = page === 'registered';
