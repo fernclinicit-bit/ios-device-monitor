@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const activityLogPage = document.getElementById('activity-log-page');
   const alertCenterPage = document.getElementById('alert-center-page');
   const assetAnalyticsPage = document.getElementById('asset-analytics-page');
+  const settingsPage = document.getElementById('settings-page');
   const alertSummaryCards = document.getElementById('alert-summary-cards');
   const alertWorkList = document.getElementById('alert-work-list');
   const analyticsSummaryCards = document.getElementById('analytics-summary-cards');
@@ -124,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const sbSettings = document.getElementById('sb-settings');
   const sbLogout = document.getElementById('sb-logout');
   const sidebarItems = [sbDashboard, sbDevicesRegistered, sbAssets, sbAssetsRegistered, sbActivityLog, sbAlertCenter, sbAssetAnalytics, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
-  const sidebarMotionEnabled = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let sidebarMotionEnabled = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function animateSidebarSelection(activeBtn) {
     if (!window.gsap || !sidebarMotionEnabled || !activeBtn) return;
@@ -274,7 +275,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sbSettings) {
     sbSettings.addEventListener('click', () => {
       setActiveSidebar(sbSettings);
-      showToast('Settings feature coming soon!');
+      showStandalonePage(settingsPage);
+      renderSettingsStatus();
     });
   }
   if (sbLogout) {
@@ -940,6 +942,7 @@ document.addEventListener('DOMContentLoaded', () => {
     activityLogPage.classList.add('hidden');
     alertCenterPage.classList.add('hidden');
     assetAnalyticsPage.classList.add('hidden');
+    settingsPage.classList.add('hidden');
   }
 
   function showStandalonePage(page) {
@@ -1028,6 +1031,110 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // --- Browser-only Settings (never writes to device/asset databases) ---
+  const UI_SETTINGS_KEY = 'ios-monitor-ui-settings-v1';
+  const uiSettingsDefaults = {
+    motion: true,
+    compactMenu: false,
+    language: 'th',
+    alertPending: true,
+    alertOverdue: true,
+    alertAssets: true,
+    reportOrientation: 'landscape',
+    reportQuality: 'high'
+  };
+
+  function readUiSettings() {
+    try {
+      return { ...uiSettingsDefaults, ...JSON.parse(localStorage.getItem(UI_SETTINGS_KEY) || '{}') };
+    } catch (error) {
+      console.warn('Unable to read local UI settings', error);
+      return { ...uiSettingsDefaults };
+    }
+  }
+
+  function applyUiSettings(settings) {
+    sidebarMotionEnabled = settings.motion && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.body.classList.toggle('reduce-ui-motion', !settings.motion);
+    document.body.classList.toggle('compact-sidebar', settings.compactMenu);
+    document.documentElement.lang = settings.language === 'en' ? 'en' : 'th';
+  }
+
+  function fillSettingsForm(settings) {
+    document.getElementById('setting-motion').checked = settings.motion;
+    document.getElementById('setting-compact-menu').checked = settings.compactMenu;
+    document.getElementById('setting-language').value = settings.language;
+    document.getElementById('setting-alert-pending').checked = settings.alertPending;
+    document.getElementById('setting-alert-overdue').checked = settings.alertOverdue;
+    document.getElementById('setting-alert-assets').checked = settings.alertAssets;
+    document.getElementById('setting-report-orientation').value = settings.reportOrientation;
+    document.getElementById('setting-report-quality').value = settings.reportQuality;
+  }
+
+  function collectSettingsForm() {
+    return {
+      motion: document.getElementById('setting-motion').checked,
+      compactMenu: document.getElementById('setting-compact-menu').checked,
+      language: document.getElementById('setting-language').value,
+      alertPending: document.getElementById('setting-alert-pending').checked,
+      alertOverdue: document.getElementById('setting-alert-overdue').checked,
+      alertAssets: document.getElementById('setting-alert-assets').checked,
+      reportOrientation: document.getElementById('setting-report-orientation').value,
+      reportQuality: document.getElementById('setting-report-quality').value
+    };
+  }
+
+  function renderSettingsStatus() {
+    document.getElementById('settings-device-count').textContent = devices.length.toLocaleString('th-TH');
+    document.getElementById('settings-asset-count').textContent = assets.length.toLocaleString('th-TH');
+    document.getElementById('settings-last-check').textContent = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('settings-system-status').textContent = navigator.onLine ? 'ออนไลน์' : 'ออฟไลน์';
+  }
+
+  document.getElementById('btn-save-ui-settings')?.addEventListener('click', () => {
+    const settings = collectSettingsForm();
+    localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(settings));
+    applyUiSettings(settings);
+    renderedOperationsSignature = '';
+    renderOperationsPages();
+    showToast('บันทึกการตั้งค่าหน้าจอบนเครื่องนี้แล้ว');
+  });
+
+  document.getElementById('btn-reset-ui-settings')?.addEventListener('click', () => {
+    localStorage.removeItem(UI_SETTINGS_KEY);
+    fillSettingsForm(uiSettingsDefaults);
+    applyUiSettings(uiSettingsDefaults);
+    showToast('คืนค่าหน้าจอเริ่มต้นแล้ว โดยไม่มีการแก้ไขข้อมูล');
+  });
+
+  document.getElementById('btn-test-settings-connection')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const badge = document.getElementById('settings-lark-status');
+    button.disabled = true;
+    badge.textContent = 'กำลังตรวจสอบ...';
+    badge.className = 'settings-connection-badge checking';
+    try {
+      const [deviceResponse, assetResponse] = await Promise.all([
+        fetch('/api/devices', { method: 'GET', cache: 'no-store' }),
+        fetch('/api/assets', { method: 'GET', cache: 'no-store' })
+      ]);
+      if (!deviceResponse.ok || !assetResponse.ok) throw new Error('Connection test failed');
+      badge.textContent = 'ระบบอ่านข้อมูลได้ปกติ';
+      badge.className = 'settings-connection-badge success';
+      renderSettingsStatus();
+    } catch (error) {
+      console.error('Read-only connection test failed', error);
+      badge.textContent = 'เชื่อมต่อไม่สำเร็จ';
+      badge.className = 'settings-connection-badge error';
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  const initialUiSettings = readUiSettings();
+  fillSettingsForm(initialUiSettings);
+  applyUiSettings(initialUiSettings);
+
   function openAssetQrModal(asset, qrUrl) {
     qrModalTitle.textContent = asset.name || 'ทรัพย์สิน';
     qrModalSn.textContent = `S/N: ${asset.sn || asset.serialNumber || '-'}`;
@@ -1071,16 +1178,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderOperationsPages() {
+    const displaySettings = readUiSettings();
     const operationsSignature = JSON.stringify({
       devices: devices.map(device => [device.id, device.status, device.userName || device.name, device.position]),
-      assets: assets.map(asset => [asset.id, asset.name, asset.category, asset.location, asset.lastScannedAt])
+      assets: assets.map(asset => [asset.id, asset.name, asset.category, asset.location, asset.lastScannedAt]),
+      alertDisplay: [displaySettings.alertPending, displaySettings.alertOverdue, displaySettings.alertAssets]
     });
     if (operationsSignature === renderedOperationsSignature) return;
     renderedOperationsSignature = operationsSignature;
 
-    const pendingDevices = devices.filter(device => device.status === 'pending' || device.status === 'unverified');
-    const overdueDevices = devices.filter(device => device.status === 'overdue');
-    const unscannedAssets = assets.filter(asset => !asset.lastScannedAt);
+    const pendingDevices = displaySettings.alertPending
+      ? devices.filter(device => device.status === 'pending' || device.status === 'unverified')
+      : [];
+    const overdueDevices = displaySettings.alertOverdue
+      ? devices.filter(device => device.status === 'overdue')
+      : [];
+    const unscannedAssets = displaySettings.alertAssets
+      ? assets.filter(asset => !asset.lastScannedAt)
+      : [];
     const totalAlerts = pendingDevices.length + overdueDevices.length + unscannedAssets.length;
 
     alertSummaryCards.innerHTML = `
@@ -1812,12 +1927,15 @@ document.addEventListener('DOMContentLoaded', () => {
       </table>
     `;
 
+    const reportSettings = readUiSettings();
+    const reportScale = reportSettings.reportQuality === 'standard' ? 1.5 : 2;
+    const reportImageQuality = reportSettings.reportQuality === 'standard' ? 0.9 : 0.98;
     const opt = {
       margin:       [0.4, 0.4, 0.4, 0.4],
       filename:     `Device_Monitor_Report_${new Date().toISOString().slice(0,10)}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
-      jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+      image:        { type: 'jpeg', quality: reportImageQuality },
+      html2canvas:  { scale: reportScale, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: reportSettings.reportOrientation }
     };
 
     showToast('กำลังสร้างไฟล์ PDF... กรุณารอสักครู่');
@@ -1929,12 +2047,15 @@ document.addEventListener('DOMContentLoaded', () => {
       </table>
     `;
 
+    const reportSettings = readUiSettings();
+    const reportScale = reportSettings.reportQuality === 'standard' ? 1.5 : 2;
+    const reportImageQuality = reportSettings.reportQuality === 'standard' ? 0.9 : 0.98;
     const opt = {
       margin:       [0.4, 0.4, 0.4, 0.4],
       filename:     `Assets_Report_${new Date().toISOString().slice(0,10)}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
-      jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+      image:        { type: 'jpeg', quality: reportImageQuality },
+      html2canvas:  { scale: reportScale, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: reportSettings.reportOrientation }
     };
 
     showToast('กำลังสร้างไฟล์ PDF... กรุณารอสักครู่');

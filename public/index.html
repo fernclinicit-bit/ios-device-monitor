@@ -551,6 +551,80 @@
         </div>
       </section>
 
+      <section id="settings-page" class="glass-card main-card settings-page hidden">
+        <div class="section-heading settings-heading">
+          <div>
+            <h2>ตั้งค่าระบบ</h2>
+            <p>ปรับเฉพาะประสบการณ์ใช้งานบนเบราว์เซอร์นี้ โดยไม่แก้ไขข้อมูลอุปกรณ์หรือทรัพย์สิน</p>
+          </div>
+          <span class="settings-readonly-badge">🔒 Database Safe</span>
+        </div>
+
+        <div class="settings-status-grid">
+          <article class="settings-status-card"><span>สถานะระบบ</span><strong id="settings-system-status">พร้อมใช้งาน</strong></article>
+          <article class="settings-status-card"><span>อุปกรณ์ในระบบ</span><strong id="settings-device-count">0</strong></article>
+          <article class="settings-status-card"><span>ทรัพย์สินในระบบ</span><strong id="settings-asset-count">0</strong></article>
+          <article class="settings-status-card"><span>ตรวจสอบล่าสุด</span><strong id="settings-last-check">-</strong></article>
+        </div>
+
+        <div class="settings-grid">
+          <section class="settings-panel">
+            <div class="settings-panel-title"><span>✨</span><div><h3>หน้าจอและการเคลื่อนไหว</h3><p>บันทึกเฉพาะในเบราว์เซอร์เครื่องนี้</p></div></div>
+            <label class="settings-toggle-row">
+              <span><strong>GSAP Animation</strong><small>เปิดการเคลื่อนไหวของเมนู Liquid Glass</small></span>
+              <input id="setting-motion" type="checkbox" checked><i></i>
+            </label>
+            <label class="settings-toggle-row">
+              <span><strong>เมนูแบบกระชับ</strong><small>ลดระยะห่างเพื่อแสดงเมนูได้มากขึ้น</small></span>
+              <input id="setting-compact-menu" type="checkbox"><i></i>
+            </label>
+            <label class="settings-field-row">
+              <span><strong>ภาษาแสดงผล</strong><small>ข้อมูลต้นทางไม่ถูกเปลี่ยนแปลง</small></span>
+              <select id="setting-language"><option value="th">ภาษาไทย</option><option value="en">English</option></select>
+            </label>
+          </section>
+
+          <section class="settings-panel">
+            <div class="settings-panel-title"><span>🔔</span><div><h3>การแจ้งเตือนบนหน้าจอ</h3><p>ตั้งค่าการแสดงผล ไม่แก้สถานะรายการ</p></div></div>
+            <label class="settings-toggle-row"><span><strong>Pending / Unverified</strong><small>แสดงงานที่รอตรวจสอบในศูนย์แจ้งเตือน</small></span><input id="setting-alert-pending" type="checkbox" checked><i></i></label>
+            <label class="settings-toggle-row"><span><strong>Overdue</strong><small>แสดงรายการที่เกินกำหนด</small></span><input id="setting-alert-overdue" type="checkbox" checked><i></i></label>
+            <label class="settings-toggle-row"><span><strong>ทรัพย์สินยังไม่สแกน</strong><small>แสดงรายการที่ยังไม่มี Last Scanned</small></span><input id="setting-alert-assets" type="checkbox" checked><i></i></label>
+          </section>
+
+          <section class="settings-panel">
+            <div class="settings-panel-title"><span>🛡️</span><div><h3>ความปลอดภัย</h3><p>ข้อมูลสำคัญแสดงแบบอ่านอย่างเดียว</p></div></div>
+            <div class="settings-info-row"><span>การยืนยันคำสั่ง</span><strong>เปิดใช้งาน</strong></div>
+            <div class="settings-info-row"><span>Add / Verify / Edit / Delete</span><strong>ต้องใช้รหัสผ่าน</strong></div>
+            <div class="settings-info-row"><span>ข้อมูลรหัสผ่าน</span><strong>ถูกซ่อน</strong></div>
+            <div class="settings-note">หน้านี้ไม่มีคำสั่งเปลี่ยนรหัสผ่าน ลบข้อมูล หรือรีเซ็ตฐานข้อมูล</div>
+          </section>
+
+          <section class="settings-panel">
+            <div class="settings-panel-title"><span>☁️</span><div><h3>ฐานข้อมูล Lark</h3><p>ตรวจสอบการเชื่อมต่อแบบอ่านอย่างเดียว</p></div></div>
+            <div class="settings-info-row"><span>Table ID</span><strong>tbl4aur2pyRyYgXM</strong></div>
+            <div class="settings-info-row"><span>View ID</span><strong>vew9gGopfl</strong></div>
+            <div class="settings-connection-row"><span id="settings-lark-status" class="settings-connection-badge">ยังไม่ได้ทดสอบ</span></div>
+            <div class="settings-action-row">
+              <button id="btn-test-settings-connection" class="btn btn-secondary" type="button">↻ ทดสอบระบบ</button>
+              <a class="btn btn-secondary" href="https://xsgjh922vxmn.sg.larksuite.com/wiki/NqkdwbixaiCDGVkAz2tlh9RtgJc?table=tbl4aur2pyRyYgXM&amp;view=vew9gGopfl" target="_blank" rel="noopener noreferrer">เปิด Lark ↗</a>
+            </div>
+          </section>
+
+          <section class="settings-panel settings-panel-wide">
+            <div class="settings-panel-title"><span>📄</span><div><h3>รายงาน PDF</h3><p>กำหนดรูปแบบไฟล์ส่งออกเท่านั้น</p></div></div>
+            <div class="settings-report-grid">
+              <label class="settings-field-row"><span><strong>แนวกระดาษ</strong></span><select id="setting-report-orientation"><option value="landscape">แนวนอน</option><option value="portrait">แนวตั้ง</option></select></label>
+              <label class="settings-field-row"><span><strong>คุณภาพไฟล์</strong></span><select id="setting-report-quality"><option value="high">สูง</option><option value="standard">มาตรฐาน</option></select></label>
+            </div>
+          </section>
+        </div>
+
+        <div class="settings-footer-actions">
+          <button id="btn-reset-ui-settings" class="btn btn-secondary" type="button">คืนค่าหน้าจอ</button>
+          <button id="btn-save-ui-settings" class="btn btn-primary" type="button">บันทึกการตั้งค่าบนเครื่องนี้</button>
+        </div>
+      </section>
+
       <!-- QR CODE MODAL OVERLAY -->
       <div id="qr-modal" class="qr-preview-modal hidden" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
         <div class="qr-preview-dialog">
