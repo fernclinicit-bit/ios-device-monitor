@@ -1025,10 +1025,40 @@ button.stat-card { width: 100%; color: inherit; font: inherit; text-align: left;
 /* Settings page: browser-only preferences and read-only system status */
 .settings-page {
   display: block;
+  padding: 1.6rem;
 }
 
 .settings-heading {
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding-bottom: 1.2rem;
+  margin-bottom: 1.35rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.settings-heading > div:first-child {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.settings-heading h2,
+.settings-heading p {
+  margin: 0;
+}
+
+.settings-heading p {
+  max-width: 720px;
+  line-height: 1.55;
+}
+
+.settings-heading-actions {
+  display: flex;
+  flex: 0 0 auto;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.7rem;
 }
 
 .settings-readonly-badge {
@@ -1045,7 +1075,7 @@ button.stat-card { width: 100%; color: inherit; font: inherit; text-align: left;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.9rem;
-  margin: 1.25rem 0;
+  margin: 0 0 1.35rem;
 }
 
 .settings-status-card,
@@ -1192,6 +1222,8 @@ button.stat-card { width: 100%; color: inherit; font: inherit; text-align: left;
   .settings-grid,
   .settings-report-grid { grid-template-columns: 1fr; }
   .settings-panel-wide { grid-column: auto; }
+  .settings-heading { flex-direction: column; }
+  .settings-heading-actions { width: 100%; justify-content: flex-start; }
 }
 
 .asset-card {

@@ -1100,6 +1100,10 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('บันทึกการตั้งค่าหน้าจอบนเครื่องนี้แล้ว');
   });
 
+  document.getElementById('btn-back-from-settings')?.addEventListener('click', () => {
+    if (sbDashboard) sbDashboard.click();
+  });
+
   document.getElementById('btn-reset-ui-settings')?.addEventListener('click', () => {
     localStorage.removeItem(UI_SETTINGS_KEY);
     fillSettingsForm(uiSettingsDefaults);
