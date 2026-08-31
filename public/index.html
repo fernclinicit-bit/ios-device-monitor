@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=1280">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>iOS Monitor & Verification System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,7 +24,11 @@
     <div class="glow-orb orb-indigo"></div>
   </div>
   <div class="dashboard-layout">
-    <aside class="sidebar">
+    <button id="mobile-menu-toggle" class="mobile-menu-toggle" type="button" aria-controls="app-sidebar" aria-expanded="false" aria-label="เปิดเมนู">
+      <span></span><span></span><span></span>
+    </button>
+    <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+    <aside id="app-sidebar" class="sidebar">
       <div class="sidebar-logo">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="sidebar-logo-icon">
           <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>

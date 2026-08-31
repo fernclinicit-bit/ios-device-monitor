@@ -124,6 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const sbExportAssetsPdf = document.getElementById('sb-export-assets-pdf');
   const sbSettings = document.getElementById('sb-settings');
   const sbLogout = document.getElementById('sb-logout');
+  const appSidebar = document.getElementById('app-sidebar');
+  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+  const sidebarBackdrop = document.getElementById('sidebar-backdrop');
   const sidebarItems = [sbDashboard, sbDevicesRegistered, sbAssets, sbAssetsRegistered, sbActivityLog, sbAlertCenter, sbAssetAnalytics, sbScanQr, sbExportDevicesPdf, sbExportAssetsPdf, sbSettings, sbLogout];
   let sidebarMotionEnabled = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -149,7 +152,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if(activeBtn) activeBtn.classList.add('active');
     animateSidebarSelection(activeBtn);
+    if (window.matchMedia('(max-width: 1100px)').matches) closeMobileMenu();
   }
+
+  function openMobileMenu() {
+    appSidebar?.classList.add('mobile-open');
+    sidebarBackdrop?.classList.add('visible');
+    document.body.classList.add('sidebar-open');
+    mobileMenuToggle?.setAttribute('aria-expanded', 'true');
+    mobileMenuToggle?.setAttribute('aria-label', 'ปิดเมนู');
+  }
+
+  function closeMobileMenu() {
+    appSidebar?.classList.remove('mobile-open');
+    sidebarBackdrop?.classList.remove('visible');
+    document.body.classList.remove('sidebar-open');
+    mobileMenuToggle?.setAttribute('aria-expanded', 'false');
+    mobileMenuToggle?.setAttribute('aria-label', 'เปิดเมนู');
+    setTimeout(() => mapInstance?.invalidateSize(), 180);
+  }
+
+  mobileMenuToggle?.addEventListener('click', () => {
+    if (appSidebar?.classList.contains('mobile-open')) closeMobileMenu();
+    else openMobileMenu();
+  });
+  sidebarBackdrop?.addEventListener('click', closeMobileMenu);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && appSidebar?.classList.contains('mobile-open')) closeMobileMenu();
+  });
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 1100) closeMobileMenu();
+  });
 
   function initializeLiquidGlassMenu() {
     const sidebar = document.querySelector('.sidebar');
