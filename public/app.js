@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.remove('sidebar-open');
     mobileMenuToggle?.setAttribute('aria-expanded', 'false');
     mobileMenuToggle?.setAttribute('aria-label', 'เปิดเมนู');
-    setTimeout(() => mapInstance?.invalidateSize(), 180);
+    setTimeout(() => mapInstance?.invalidateSize({ pan: false, animate: false }), 180);
   }
 
   mobileMenuToggle?.addEventListener('click', () => {
@@ -302,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const showManagement = page === 'registered';
     devicesOverviewPanel.classList.toggle('hidden', showManagement);
     devicesManagementPage.classList.toggle('hidden', !showManagement);
-    if (showManagement) setTimeout(() => mapInstance?.invalidateSize(), 50);
+    if (showManagement) setTimeout(() => mapInstance?.invalidateSize({ pan: false, animate: false }), 50);
   }
   if (sbExportDevicesPdf) {
     sbExportDevicesPdf.addEventListener('click', async () => {
@@ -362,6 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentActiveView = 'admin'; // 'admin' or 'client'
   let mapInstance = null;
   let mapMarkers = {}; // Store markers by deviceId
+  let lastMapBoundsSignature = '';
   let addDevicePassword = null;
   let editDevicePassword = null;
   
@@ -453,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Fix Leaflet dimensions when container becomes visible
       setTimeout(() => {
-        if (mapInstance) mapInstance.invalidateSize();
+        if (mapInstance) mapInstance.invalidateSize({ pan: false, animate: false });
       }, 50);
     } else {
       adminView.classList.add('hidden');
@@ -499,18 +500,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!mapContainer) return;
 
     // Default view to Thailand
-    mapInstance = L.map('map-container').setView([13.736717, 100.523186], 6);
+    mapInstance = L.map('map-container', {
+      zoomAnimation: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      fadeAnimation: false,
+      markerZoomAnimation: false,
+      trackResize: true
+    }).setView([13.736717, 100.523186], 6);
 
     // Dark-mode Map Tiles (CartoDB Dark Matter)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
       subdomains: 'abcd',
-      maxZoom: 20
+      maxZoom: 20,
+      updateWhenZooming: false,
+      keepBuffer: 3
     }).addTo(mapInstance);
     
     // Fix Leaflet sizing bug when rendering inside hidden tab
     setTimeout(() => {
-      if (mapInstance) mapInstance.invalidateSize();
+      if (mapInstance) mapInstance.invalidateSize({ pan: false, animate: false });
     }, 100);
   }
 
@@ -587,12 +595,26 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Fit map bounds if there are markers, with safety check
-    if (coordinates.length > 0) {
+    // Preserve the user's pan and zoom during the one-second data refresh.
+    // Reframe only when the visible marker set or its coordinates actually change.
+    const boundsSignature = activeList
+      .filter(d => d.latitude !== undefined && d.latitude !== null && d.longitude !== undefined && d.longitude !== null)
+      .map(d => `${d.id}:${Number(d.latitude).toFixed(5)},${Number(d.longitude).toFixed(5)}`)
+      .sort()
+      .join('|');
+    const shouldFitBounds = boundsSignature !== lastMapBoundsSignature;
+    lastMapBoundsSignature = boundsSignature;
+
+    if (coordinates.length > 0 && shouldFitBounds) {
       try {
         // Only fit bounds if we have coordinates and the map is visible
         if (currentActiveView === 'admin') {
-          mapInstance.fitBounds(coordinates, { maxZoom: 14, padding: [40, 40] });
+          mapInstance.invalidateSize({ pan: false, animate: false });
+          mapInstance.fitBounds(coordinates, {
+            maxZoom: 14,
+            padding: [40, 40],
+            animate: false
+          });
         }
       } catch (e) {
         console.warn('fitBounds failed:', e);
