@@ -231,8 +231,8 @@ function calculateDeviceStatus(lastVerifiedAtStr) {
   const now = Date.now();
   
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-  const CYCLE_MS = 30 * ONE_DAY_MS; // 30 days cycle
-  const PENDING_WINDOW_MS = 5 * ONE_DAY_MS; // starts showing pending 5 days before due date
+  const CYCLE_MS = 15 * ONE_DAY_MS; // Check twice per month (every 15 days)
+  const PENDING_WINDOW_MS = 3 * ONE_DAY_MS; // Notify 3 days before the next check
   
   const nextDueAt = lastVerifiedAt + CYCLE_MS;
   const msRemaining = nextDueAt - now;
@@ -458,7 +458,7 @@ const server = http.createServer((req, res) => {
         const now = new Date().toISOString();
         db.devices[deviceIndex].lastVerifiedAt = now;
         
-        let logMsg = 'Confirmed presence (Monthly Check)';
+        let logMsg = 'Confirmed presence (15-Day Check)';
         if (latitude !== undefined && latitude !== null && longitude !== undefined && longitude !== null) {
           db.devices[deviceIndex].latitude = latitude;
           db.devices[deviceIndex].longitude = longitude;
