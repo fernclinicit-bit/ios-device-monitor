@@ -323,13 +323,7 @@ const server = http.createServer((req, res) => {
 
         const db = readDb();
         const normalizedNumber = normalizeDeviceNumber(deviceNumber);
-        const matchedDevices = db.devices.filter(device => normalizeDeviceNumber(device.deviceNumber) === normalizedNumber);
-        if (matchedDevices.length === 0) {
-          res.writeHead(404, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Device is not registered in iOS Device Monitor.', deviceNumber }));
-          return;
-        }
-
+        let matchedDevices = db.devices.filter(device => normalizeDeviceNumber(device.deviceNumber) === normalizedNumber);
         const userName = action === 'issue' ? String(data.userName || '').trim() : 'ส่วนกลาง';
         const position = action === 'issue' ? String(data.position || '').trim() : 'คลัง IT';
         if (action === 'issue' && !userName) {
@@ -339,22 +333,52 @@ const server = http.createServer((req, res) => {
         }
 
         const syncedAt = new Date().toISOString();
-        matchedDevices.forEach(device => {
-          device.name = userName;
-          device.userName = userName;
-          device.position = position;
-          device.assignmentStatus = action === 'issue' ? 'issued' : 'returned';
-          device.assignmentSyncedAt = syncedAt;
-          if (action === 'return') device.lastVerifiedAt = '';
-          addLog(
-            db,
-            device.id,
-            userName,
-            action === 'issue'
-              ? `Assigned from IT Dashboard (${device.deviceNumber})`
-              : `Returned from IT Dashboard (${device.deviceNumber})`
-          );
-        });
+        let createdCount = 0;
+        let removedCount = 0;
+
+        if (action === 'issue') {
+          if (matchedDevices.length === 0) {
+            const deviceId = 'dev-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
+            const newDevice = {
+              id: deviceId,
+              name: userName,
+              userName,
+              position,
+              deviceNumber,
+              accessories: String(data.accessories || '').trim(),
+              userAgent: 'IT Monthly Dashboard',
+              ip: 'Dashboard integration',
+              isIOS: /iphone|ipad|ios/i.test(String(data.itemType || deviceNumber)),
+              registeredAt: syncedAt,
+              lastVerifiedAt: syncedAt,
+              assignmentStatus: 'issued',
+              assignmentSyncedAt: syncedAt
+            };
+            db.devices.push(newDevice);
+            matchedDevices = [newDevice];
+            createdCount = 1;
+          } else {
+            matchedDevices.forEach(device => {
+              device.name = userName;
+              device.userName = userName;
+              device.position = position;
+              device.assignmentStatus = 'issued';
+              device.assignmentSyncedAt = syncedAt;
+              device.lastVerifiedAt = syncedAt;
+            });
+          }
+
+          matchedDevices.forEach(device => {
+            addLog(db, device.id, userName, `Assigned from IT Dashboard (${device.deviceNumber})`);
+          });
+        } else {
+          const matchedIds = new Set(matchedDevices.map(device => device.id));
+          matchedDevices.forEach(device => {
+            addLog(db, device.id, device.userName || device.name || userName, `Returned from IT Dashboard (${device.deviceNumber})`);
+          });
+          db.devices = db.devices.filter(device => !matchedIds.has(device.id));
+          removedCount = matchedDevices.length;
+        }
         writeDb(db);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -363,6 +387,8 @@ const server = http.createServer((req, res) => {
           action,
           deviceNumber,
           matchedCount: matchedDevices.length,
+          createdCount,
+          removedCount,
           syncedAt
         }));
       } catch (err) {
