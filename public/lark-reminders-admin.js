@@ -1,6 +1,30 @@
 const el = id => document.getElementById(id);
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 let people = [];
+el('import-contacts').onclick = event => busy(event.target, async () => {
+  const file = el('contacts-file').files[0];
+  if (!file) throw Error('กรุณาเลือกไฟล์รายชื่อ .json');
+  if (file.size > 1000000) throw Error('ไฟล์ใหญ่เกินไป');
+  const input = JSON.parse(await file.text());
+  if (input.format !== 'lark-contacts-v1' || !Array.isArray(input.contacts)) throw Error('รูปแบบไฟล์ไม่ถูกต้อง');
+  const current = await call('status'); people = current.people;
+  const matches = people.map(person => ({ person, candidates: matchLarkContacts(person.name, input.contacts) }));
+  const certain = matches.filter(item => item.candidates.length === 1);
+  if (!confirm(`พบชื่อที่จับคู่ได้ ${certain.length} แถว จาก ${people.length} แถว บันทึก User ID โดยคงสถานะเปิดส่งเดิมหรือไม่?`)) return;
+  let saved = 0; const errors = [];
+  for (const { person, candidates } of certain) {
+    try {
+      const contact = candidates[0];
+      if (!/^[a-zA-Z0-9_-]{1,128}$/.test(contact.userId)) throw Error('User ID ไม่ถูกต้อง');
+      if (person.recipient?.enabled && (person.recipient.receiveId !== contact.userId || person.recipient.idType !== 'user_id')) throw Error('บัญชีนี้เปิดส่งอยู่ กรุณาตรวจการเปลี่ยนผู้รับด้วยตนเอง');
+      await call('save', { name: person.name, idType: 'user_id', receiveId: contact.userId, enabled: person.recipient?.enabled === true });
+      saved++;
+    } catch(error) { errors.push(`${person.name}: ${error.message}`); }
+  }
+  people = (await call('status')).people; render();
+  const unmatched = matches.filter(item => item.candidates.length !== 1).map(item => item.person.name);
+  el('message').textContent = `บันทึก ${saved} แถว\nต้องตรวจสอบ ${unmatched.length + errors.length} แถว\n${unmatched.join('\n')}\n${errors.join('\n')}\nยังไม่ได้ส่งข้อความจากการนำเข้า`;
+});
 async function call(action, extra = {}) {
   const response = await fetch('/api/lark-reminders', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action, password:el('password').value, ...extra }) });
   const data = await response.json();
