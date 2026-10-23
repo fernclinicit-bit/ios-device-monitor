@@ -9,6 +9,14 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const DB_FILE = path.join(__dirname, 'data', 'db.json');
 const ACTION_PASSWORD = '664749';
 const DASHBOARD_SYNC_TOKEN = process.env.IOS_DASHBOARD_SYNC_TOKEN || '';
+const { createLarkReminders } = require('./lark-reminders');
+const larkReminders = createLarkReminders({ readDb, persist: async db => {
+  if (JSONBIN_API_KEY && JSONBIN_BIN_ID) await saveToJsonBin(db);
+  else {
+    fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+  }
+} });
 
 function requireActionPassword(data, res) {
   if (!data || data.password !== ACTION_PASSWORD) {
@@ -290,6 +298,29 @@ const server = http.createServer((req, res) => {
   // Strip query string for robust routing and file serving
   const qPos = req.url.indexOf('?');
   const pathname = qPos !== -1 ? req.url.substring(0, qPos) : req.url;
+
+  if (req.method === 'POST' && pathname === '/api/lark-reminders') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; if (body.length > 16000) req.destroy(); });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body);
+        if (!requireActionPassword(data, res)) return;
+        let result;
+        if (data.action === 'save') { await larkReminders.saveRecipient(data); result = larkReminders.overview(); }
+        else if (data.action === 'test') result = await larkReminders.testConnection();
+        else if (data.action === 'send') result = await larkReminders.run({ scheduled: false });
+        else if (data.action === 'status') result = larkReminders.overview();
+        else throw new Error('Unknown action');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(result));
+      } catch (error) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+    });
+    return;
+  }
 
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -1048,6 +1079,8 @@ const server = http.createServer((req, res) => {
 });
 
 initDb(() => {
+  setInterval(() => larkReminders.run().catch(error => console.error('Lark reminder:', error.message)), 60000).unref();
+  larkReminders.run().catch(error => console.error('Lark reminder:', error.message));
   server.listen(PORT, () => {
     console.log(`==================================================`);
     console.log(`📱 iOS Device Monitor server is running locally!`);
