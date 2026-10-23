@@ -7,6 +7,7 @@ function due(device, now) {
   return !Number.isFinite(last) || now - last >= 12 * DAY;
 }
 function bangkokDay(now) { return new Date(now + 7 * 3600000).toISOString().slice(0, 10); }
+const recipientKey = recipient => `recipient:${recipient.idType}:${recipient.receiveId}`;
 
 function createLarkReminders({ readDb, persist, env = process.env, request = fetch, clock = Date.now }) {
   let token = '', tokenUntil = 0, running = false;
@@ -41,7 +42,8 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
     }
     return { configured: !!(env.LARK_APP_ID && env.LARK_APP_SECRET), schedule: '09:00 Asia/Bangkok ทุกวัน เริ่มก่อนกำหนด 3 วัน',
       people: [...groups].map(([name, devices]) => ({ name, recipient: config.recipients[name] || null,
-        dueCount: devices.filter(d => due(d, now)).length, total: devices.length, delivery: config.delivery[name] || null })) };
+        dueCount: devices.filter(d => due(d, now)).length, total: devices.length,
+        delivery: (config.recipients[name] && config.delivery[recipientKey(config.recipients[name])]) || config.delivery[name] || null })) };
   }
   async function saveRecipient({ name, receiveId, idType, enabled }) {
     const db = readDb(), key = normalizeName(name);
@@ -50,7 +52,6 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
     receiveId = String(receiveId || '').trim();
     if (!receiveId || receiveId.length > 254 || (idType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(receiveId))) throw new Error('กรุณาระบุบัญชี Lark ให้ถูกต้อง');
     const config = state(db);
-    if (Object.entries(config.recipients).some(([other, entry]) => other !== key && entry.idType === idType && entry.receiveId === receiveId)) throw new Error('บัญชีนี้ผูกกับอีกชื่อแล้ว กรุณาตรวจสอบรายชื่อซ้ำ');
     config.recipients[key] = { receiveId, idType, enabled: enabled === true };
     await persist(db);
   }
@@ -63,26 +64,42 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
     const results = [];
     try {
       const day = bangkokDay(now), people = overview().people;
+      const groups = new Map();
       for (const person of people) {
-        const db = readDb(), config = state(db), recipient = config.recipients[person.name];
-        if (!recipient?.enabled || config.delivery[person.name]?.day === day) continue;
-        if (now - Date.parse(config.delivery[person.name]?.attemptedAt) < 3600000) continue;
+        const recipient = state(readDb()).recipients[person.name];
+        if (!recipient?.enabled) continue;
+        const key = recipientKey(recipient);
+        if (!groups.has(key)) groups.set(key, { recipient, names: [] });
+        groups.get(key).names.push(person.name);
+      }
+      for (const [key, { recipient, names }] of groups) {
+        const db = readDb(), config = state(db);
+        // Respect delivery history written by the earlier per-name implementation too.
+        const history = [config.delivery[key], ...names.map(name => config.delivery[name])].filter(Boolean);
+        if (history.some(entry => entry.day === day)) continue;
+        if (history.some(entry => now - Date.parse(entry.attemptedAt) < 3600000)) continue;
         // Read current verification state immediately before sending, not the earlier snapshot.
-        const devices = db.devices.filter(d => normalizeName(d.userName || d.name) === person.name && due(d, clock()));
+        const devices = db.devices.filter(d => {
+          const name = normalizeName(d.userName || d.name), current = config.recipients[name];
+          return names.includes(name) && current?.enabled && recipientKey(current) === key && due(d, clock());
+        });
         if (!devices.length) continue;
         const lines = devices.map(d => `${d.deviceNumber || 'ไม่ระบุหมายเลข'}\n${baseUrl}/?id=${encodeURIComponent(d.id)}`);
-        const text = `แจ้งเตือนยืนยันอุปกรณ์: ${person.name}\nกรุณาเปิดลิงก์ของแต่ละอุปกรณ์และกดยืนยันการใช้งาน\n\n${lines.join('\n\n')}\n\nระบบจะหยุดเตือนรายการที่ยืนยันแล้ว จนถึงรอบถัดไป`;
+        const text = `แจ้งเตือนยืนยันอุปกรณ์: ${names[0]}\nกรุณาเปิดลิงก์ของแต่ละอุปกรณ์และกดยืนยันการใช้งาน\n\n${lines.join('\n\n')}\n\nระบบจะหยุดเตือนรายการที่ยืนยันแล้ว จนถึงรอบถัดไป`;
         try {
           const auth = await accessToken();
           const uuid = createHash('sha256').update(`${day}:${recipient.idType}:${recipient.receiveId}`).digest('hex').slice(0, 32);
           const message = await api(`im/v1/messages?receive_id_type=${recipient.idType}`, { receive_id: recipient.receiveId, msg_type: 'text', content: JSON.stringify({ text }), uuid }, auth);
-          config.delivery[person.name] = { day, sentAt: new Date(clock()).toISOString(), count: devices.length, messageId: message.data?.message_id };
+          const delivery = { day, sentAt: new Date(clock()).toISOString(), count: devices.length, messageId: message.data?.message_id };
+          config.delivery[key] = delivery;
+          for (const name of names) config.delivery[name] = delivery;
           await persist(db);
-          results.push({ name: person.name, sent: true });
+          results.push({ name: names[0], names, sent: true });
         } catch (error) {
-          config.delivery[person.name] = { ...config.delivery[person.name], error: error.message, attemptedAt: new Date(clock()).toISOString() };
+          config.delivery[key] = { ...config.delivery[key], error: error.message, attemptedAt: new Date(clock()).toISOString() };
+          for (const name of names) config.delivery[name] = config.delivery[key];
           await persist(db);
-          results.push({ name: person.name, sent: false, error: error.message });
+          results.push({ name: names[0], names, sent: false, error: error.message });
         }
       }
       return { results };

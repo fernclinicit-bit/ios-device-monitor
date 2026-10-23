@@ -28,6 +28,33 @@ test('skip returned devices and preserve pending boundary',()=>{
   assert.equal(due({lastVerifiedAt:new Date(now-12*DAY).toISOString()},now),true);
   assert.equal(due({assignmentStatus:'returned'},now),false);
 });
+test('one recipient can own multiple name rows and receives all due links together', async () => {
+  let now = Date.parse('2026-10-23T02:00:00Z');
+  const sent = [];
+  const db = { devices: [
+    {id:'first',name:'ศรัญญา ( แนน )'},
+    {id:'second',name:'ศรัญญา (แนน)'},
+    {id:'fresh',name:'ศรัญญา (แนน)',lastVerifiedAt:new Date(now).toISOString()},
+    {id:'disabled',name:'แนน ปิดส่ง'}
+  ] };
+  const service = createLarkReminders({ readDb:()=>db,persist:async()=>{},clock:()=>now,
+    env:{LARK_APP_ID:'test',LARK_APP_SECRET:'test'},request:async(url,options)=>{
+      if(url.includes('tenant_access_token')) return {ok:true,json:async()=>({code:0,tenant_access_token:'token',expire:7200})};
+      sent.push(JSON.parse(JSON.parse(options.body).content).text);
+      return {ok:true,json:async()=>({code:0,data:{message_id:'m'}})};
+    } });
+  for (const name of ['ศรัญญา ( แนน )','ศรัญญา (แนน)','แนน ปิดส่ง']) {
+    await service.saveRecipient({name,receiveId:'same-user',idType:'user_id',enabled:name!=='แนน ปิดส่ง'});
+  }
+  await service.run(); await service.run();
+  assert.equal(sent.length,1);
+  assert.match(sent[0],/\?id=first/); assert.match(sent[0],/\?id=second/);
+  assert.doesNotMatch(sent[0],/\?id=fresh|\?id=disabled/);
+  db.devices[0].lastVerifiedAt = new Date(now).toISOString();
+  now += DAY; await service.run();
+  assert.equal(sent.length,2);
+  assert.doesNotMatch(sent[1],/\?id=first/); assert.match(sent[1],/\?id=second/);
+});
 test('do not repeatedly retry rejected deliveries within an hour', async()=>{
   const now=Date.parse('2026-10-23T02:00:00Z'); let attempts=0;
   const db={devices:[{id:'a',name:'A'}]};
