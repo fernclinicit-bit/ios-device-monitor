@@ -819,8 +819,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const btnExpandMap = document.getElementById('btn-expand-map');
         if (btnExpandMap) {
           btnExpandMap.addEventListener('click', () => {
-            showStandalonePage(devicesSection);
+            openDeviceManagement('all');
             setTimeout(() => {
+              if (mapInstance) mapInstance.invalidateSize({ pan: false, animate: false });
               document.getElementById('map-container').scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
           });
@@ -829,7 +830,12 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Update markers
       window.miniMapMarkers.clearLayers();
-      const validDevices = devices.filter(d => d.lat && d.lng);
+      const validDevices = devices.filter(d =>
+        d.latitude !== null && d.latitude !== undefined && d.latitude !== '' &&
+        d.longitude !== null && d.longitude !== undefined && d.longitude !== '' &&
+        Number.isFinite(Number(d.latitude)) && Math.abs(Number(d.latitude)) <= 90 &&
+        Number.isFinite(Number(d.longitude)) && Math.abs(Number(d.longitude)) <= 180
+      );
       validDevices.forEach(d => {
         let color = '#3b82f6';
         if (d.status === 'active') color = '#10b981';
@@ -838,7 +844,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const markerHtml = `<div style="background-color: ${color}; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`;
         const icon = L.divIcon({ html: markerHtml, className: '', iconSize: [12, 12], iconAnchor: [6, 6] });
-        L.marker([parseFloat(d.lat), parseFloat(d.lng)], { icon }).addTo(window.miniMapMarkers)
+        L.marker([Number(d.latitude), Number(d.longitude)], { icon }).addTo(window.miniMapMarkers)
          .bindPopup(`<b>${escapeHtml(d.userName || d.name || 'อุปกรณ์')}</b><br>${escapeHtml(d.position || '')}`);
       });
       
