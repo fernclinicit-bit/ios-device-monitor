@@ -2,6 +2,28 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { createLarkReminders, due } = require('./lark-reminders');
 const DAY = 86400000;
+test('system report goes only to Amphol once per Bangkok day, separately from reminders', async () => {
+  let now=Date.parse('2026-10-24T01:00:00Z');const sent=[];
+  const db={devices:[
+    {id:'a',name:'A',lastVerifiedAt:new Date(now).toISOString()},
+    {id:'b',name:'B',lastVerifiedAt:new Date(now-12*DAY).toISOString()},
+    {id:'c',name:'C',lastVerifiedAt:new Date(now-15*DAY).toISOString()},
+    {id:'d',name:'D'}
+  ]};
+  const service=createLarkReminders({readDb:()=>db,persist:async()=>{},clock:()=>now,env:{LARK_APP_ID:'a',LARK_APP_SECRET:'s'},request:async(url,options)=>{
+    if(url.includes('tenant_access_token'))return {ok:true,json:async()=>({code:0,tenant_access_token:'t',expire:7200})};
+    assert.match(url,/receive_id_type=user_id/);sent.push(JSON.parse(options.body));
+    return {ok:true,json:async()=>({code:0,data:{message_id:'om_summary'}})};
+  }});
+  await service.sendSummary();assert.equal(sent.length,0);
+  await service.sendSummary({scheduled:false});assert.equal(sent.length,1);
+  assert.equal(sent[0].receive_id,'17e23293');
+  const text=JSON.parse(sent[0].content).text;
+  for(const status of ['Active','Pending','Unverified','Overdue'])assert(text.includes(status+': 1'));
+  await service.sendSummary({scheduled:false});assert.equal(sent.length,1);
+  assert.equal(Object.keys(db.larkReminders.delivery).length,0);
+  now+=DAY; await service.sendSummary({scheduled:false});assert.equal(sent.length,2);
+});
 test('remind three days before due, stop after verification, restart next cycle', async () => {
   let now = Date.parse('2026-10-23T02:00:00Z'), sends = 0;
   const db = { devices: [{ id:'one', name:'ทดสอบ', deviceNumber:'pc-1', lastVerifiedAt:new Date(now-12*DAY).toISOString() }], logs:[] };

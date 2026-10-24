@@ -1,6 +1,11 @@
 const el = id => document.getElementById(id);
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 let people = [];
+el('summary').onclick = event => busy(event.target, async () => {
+  if (!confirm('ส่งรายงานสรุปทั้งระบบให้อำพล แซ่แฮคนเดียว? (วันละครั้ง)')) return;
+  const result = await call('summary');
+  el('message').textContent = result.skipped || (result.sent ? `Lark รับรายงานสำหรับอำพลแล้ว${result.storageError ? '\nบันทึกประวัติไม่สำเร็จ: '+result.storageError : ''}` : result.error);
+});
 el('import-contacts').onclick = event => busy(event.target, async () => {
   const file = el('contacts-file').files[0];
   if (!file) throw Error('กรุณาเลือกไฟล์รายชื่อ .json');

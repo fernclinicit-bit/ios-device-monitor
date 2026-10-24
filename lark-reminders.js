@@ -10,7 +10,7 @@ function bangkokDay(now) { return new Date(now + 7 * 3600000).toISOString().slic
 const recipientKey = recipient => `recipient:${recipient.idType}:${recipient.receiveId}`;
 
 function createLarkReminders({ readDb, persist, env = process.env, request = fetch, clock = Date.now }) {
-  let token = '', tokenUntil = 0, running = false;
+  let token = '', tokenUntil = 0, running = false, summaryRunning = false;
   const baseUrl = (env.PUBLIC_BASE_URL || 'https://ios-device-monitor-46w9.onrender.com').replace(/\/$/, '');
   async function api(path, body, auth) {
     const response = await request('https://open.larksuite.com/open-apis/' + path, {
@@ -50,6 +50,7 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
       groups.get(name).push(d);
     }
     return { configured: !!(env.LARK_APP_ID && env.LARK_APP_SECRET), schedule: '09:00 Asia/Bangkok ทุกวัน เริ่มก่อนกำหนด 3 วัน',
+      summaryDelivery: config.summaryDelivery || null,
       people: [...groups].map(([name, devices]) => ({ name, recipient: config.recipients[name] || null,
         dueCount: devices.filter(d => due(d, now)).length, total: devices.length,
         delivery: (config.recipients[name] && config.delivery[recipientKey(config.recipients[name])]) || config.delivery[name] || null })) };
@@ -119,6 +120,43 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
       return { results };
     } finally { running = false; }
   }
+  async function sendSummary({ scheduled = true } = {}) {
+    if (summaryRunning) return { skipped: 'กำลังส่งรายงาน' };
+    const now = clock(), day = bangkokDay(now);
+    if (scheduled && new Date(now + 7 * 3600000).getUTCHours() < 9) return { skipped: 'ยังไม่ถึง 09:00 น.' };
+    const db = readDb(), config = state(db);
+    if (config.summaryDelivery?.day === day) return { skipped: 'ส่งรายงานให้อำพลแล้ววันนี้', delivery: config.summaryDelivery };
+    if (now - Date.parse(config.summaryDelivery?.attemptedAt) < 3600000) return { skipped: 'รอลองส่งรายงานใหม่หลังข้อผิดพลาด 1 ชั่วโมง' };
+    summaryRunning = true;
+    try {
+      const counts = { active: 0, pending: 0, unverified: 0, overdue: 0 }, followUp = new Map();
+      for (const device of db.devices) {
+        const age = now - Date.parse(device.lastVerifiedAt);
+        const status = !Number.isFinite(age) ? 'unverified' : age >= 15 * DAY ? 'overdue' : age >= 12 * DAY ? 'pending' : 'active';
+        counts[status]++;
+        if (status !== 'active') {
+          const name = normalizeName(device.userName || device.name) || 'ไม่ระบุชื่อ';
+          followUp.set(name, (followUp.get(name) || 0) + 1);
+        }
+      }
+      const pending = [...followUp].sort((a,b)=>b[1]-a[1]);
+      const timestamp = new Date(now).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+      const text = `รายงานสถานะอุปกรณ์ทั้งระบบ\nสำหรับ อำพล แซ่แฮ\nข้อมูล ณ ${timestamp}\n\nทั้งหมด ${db.devices.length} รายการ\nActive: ${counts.active}\nPending: ${counts.pending}\nUnverified: ${counts.unverified}\nOverdue: ${counts.overdue}\n\nต้องติดตาม ${pending.length} ชื่อ/รายการผู้ถือครอง\n${pending.slice(0,15).map(([name,count])=>`${name}: ${count} รายการ`).join('\n') || 'ไม่มีรายการค้าง'}${pending.length > 15 ? `\nและอีก ${pending.length-15} ชื่อ ดูทั้งหมดในระบบ` : ''}\n\nดูสถานะและรายการทั้งหมด:\n${baseUrl}/\n\nรายงานนี้ส่งให้อำพลคนเดียว การเตือนยืนยันอุปกรณ์ของพนักงานยังทำงานตามเดิม`;
+      const auth = await accessToken();
+      // Administrator ID verified against the supplied Lark contact export.
+      const message = await api('im/v1/messages?receive_id_type=user_id', {
+        receive_id: '17e23293', msg_type: 'text', content: JSON.stringify({ text }),
+        uuid: createHash('sha256').update(`admin-summary:${day}:17e23293`).digest('hex').slice(0,32)
+      }, auth);
+      config.summaryDelivery = { day, sentAt: new Date(clock()).toISOString(), messageId: message.data?.message_id, receiveId: '17e23293' };
+      try { await persist(db); } catch (error) { return { sent: true, storageError: error.message, delivery: config.summaryDelivery }; }
+      return { sent: true, delivery: config.summaryDelivery };
+    } catch (error) {
+      config.summaryDelivery = { error: error.message, attemptedAt: new Date(clock()).toISOString() };
+      try { await persist(db); } catch (_) { /* Keep retry backoff in memory. */ }
+      return { sent: false, error: error.message };
+    } finally { summaryRunning = false; }
+  }
   async function recover({ people = [], deviceChecks = [] }) {
     const db = readDb(), config = state(db);
     const names = new Set(db.devices.map(d => normalizeName(d.userName || d.name)));
@@ -149,6 +187,6 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
     await persist(db);
     return { restored, checks, people: overview().people.length };
   }
-  return { overview, saveRecipient, run, recover, testConnection: async () => { await accessToken(); return { ok: true }; } };
+  return { overview, saveRecipient, run, recover, sendSummary, testConnection: async () => { await accessToken(); return { ok: true }; } };
 }
 module.exports = { createLarkReminders, due, bangkokDay, normalizeName };

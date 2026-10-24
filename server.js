@@ -311,6 +311,7 @@ const server = http.createServer((req, res) => {
         else if (data.action === 'test') result = await larkReminders.testConnection();
         else if (data.action === 'send') result = await larkReminders.run({ scheduled: false });
         else if (data.action === 'status') result = larkReminders.overview();
+        else if (data.action === 'summary') result = await larkReminders.sendSummary({ scheduled: false });
         else if (data.action === 'recover') result = await larkReminders.recover(data);
         else throw new Error('Unknown action');
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1080,8 +1081,12 @@ const server = http.createServer((req, res) => {
 });
 
 initDb(() => {
-  setInterval(() => larkReminders.run().catch(error => console.error('Lark reminder:', error.message)), 60000).unref();
-  larkReminders.run().catch(error => console.error('Lark reminder:', error.message));
+  async function pollLark() {
+    try { await larkReminders.run(); } catch (error) { console.error('Lark reminder:', error.message); }
+    try { await larkReminders.sendSummary(); } catch (error) { console.error('Lark summary:', error.message); }
+  }
+  setInterval(pollLark, 60000).unref();
+  pollLark();
   server.listen(PORT, () => {
     console.log(`==================================================`);
     console.log(`📱 iOS Device Monitor server is running locally!`);

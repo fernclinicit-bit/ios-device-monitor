@@ -6,11 +6,12 @@ body{font:16px system-ui,sans-serif;background:#19110d;color:#f4eee8;margin:0}ma
 <a href="/">← กลับหน้าหลัก</a><h1>แจ้งเตือนอุปกรณ์ผ่าน Lark</h1>
 <p>จับคู่ชื่อผู้ถืออุปกรณ์กับอีเมล Lark หรือ Open ID แล้วเปิดการแจ้งเตือน ระบบเริ่มเตือนก่อนครบกำหนด 3 วัน วันละครั้งหลัง 09:00 น. หยุดเตือนเมื่อยืนยันแล้ว และเริ่มใหม่เมื่อใกล้ถึงรอบถัดไป</p>
 <p>รายชื่อที่คล้ายกันหรือมีชื่อเล่นต่างกันจะอยู่คนละแถว User ID เดียวผูกได้หลายแถวสำหรับผู้ถืออุปกรณ์หลายชิ้น ระบบจะรวมลิงก์ที่ถึงกำหนดส่งให้บัญชีนั้นในข้อความเดียว กรุณาตรวจบัญชีผู้รับก่อนเปิดส่ง</p>
-<div class="toolbar"><input id="password" type="password" placeholder="รหัสผ่านผู้ดูแล" aria-label="รหัสผ่านผู้ดูแล"><button id="load">โหลดรายชื่อ</button><button id="test">ทดสอบการเชื่อมต่อบอท</button><button id="send">ส่งรายการที่ถึงกำหนดตอนนี้</button></div>
+<div class="toolbar"><input id="password" type="password" placeholder="รหัสผ่านผู้ดูแล" aria-label="รหัสผ่านผู้ดูแล"><button id="load">โหลดรายชื่อ</button><button id="test">ทดสอบการเชื่อมต่อบอท</button><button id="send">ส่งรายการที่ถึงกำหนดตอนนี้</button><button id="summary">ส่งรายงานให้อำพล</button></div>
+<p>รายงานสรุปทั้งระบบส่งให้อำพล แซ่แฮเท่านั้น วันละครั้งหลัง 09:00 น. เมื่อเซิร์ฟเวอร์ทำงาน แยกจากลิงก์เตือนพนักงาน</p>
 <div class="toolbar"><label>นำเข้ารายชื่อ Lark <input id="contacts-file" type="file" accept=".json,application/json"></label><button id="import-contacts">จับคู่และบันทึกจากไฟล์</button></div>
 <p>นำเข้าเฉพาะชื่อที่ตรงกันอย่างชัดเจน รายชื่อใหม่จะยังปิดส่งไว้ และไม่เปลี่ยนสถานะเปิดส่งของบัญชีเดิม</p>
 <div id="message" role="status">กรอกรหัสผ่านแล้วโหลดรายชื่อ</div>
 <div class="toolbar"><input id="search" type="search" placeholder="ค้นหารายชื่อ" aria-label="ค้นหารายชื่อ"></div>
 <div class="table"><table><thead><tr><th>ชื่อ / อุปกรณ์รอยืนยัน</th><th>ประเภทบัญชี</th><th>บัญชี Lark</th><th>เปิดส่ง / บันทึก</th><th>การส่งล่าสุด</th></tr></thead><tbody id="people"></tbody></table></div>
 <p>ใช้บัญชี Lark ของพนักงาน ไม่ใช่ชื่อที่แสดงในแชท การทดสอบการเชื่อมต่อจะตรวจ App ID / App Secret โดยไม่ส่งข้อความ</p>
-</main><script src="/lark-contact-matching.js?v=contacts2"></script><script src="/lark-reminders-admin.js?v=delivery3"></script></body></html>
+</main><script src="/lark-contact-matching.js?v=contacts2"></script><script src="/lark-reminders-admin.js?v=summary4"></script></body></html>
