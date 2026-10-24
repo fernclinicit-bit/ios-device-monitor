@@ -301,7 +301,7 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'POST' && pathname === '/api/lark-reminders') {
     let body = '';
-    req.on('data', chunk => { body += chunk; if (body.length > 16000) req.destroy(); });
+    req.on('data', chunk => { body += chunk; if (body.length > 150000) req.destroy(); });
     req.on('end', async () => {
       try {
         const data = JSON.parse(body);
@@ -311,6 +311,7 @@ const server = http.createServer((req, res) => {
         else if (data.action === 'test') result = await larkReminders.testConnection();
         else if (data.action === 'send') result = await larkReminders.run({ scheduled: false });
         else if (data.action === 'status') result = larkReminders.overview();
+        else if (data.action === 'recover') result = await larkReminders.recover(data);
         else throw new Error('Unknown action');
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));

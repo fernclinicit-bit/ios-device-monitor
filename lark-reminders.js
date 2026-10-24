@@ -30,7 +30,16 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
     return token;
   }
   function state(db) {
-    return db.larkReminders ||= { recipients: {}, delivery: {} };
+    const config = db.larkReminders ||= { recipients: {}, delivery: {} };
+    // Migrate legacy per-name copies into one record per destination account.
+    for (const [name, recipient] of Object.entries(config.recipients)) {
+      const legacy = config.delivery[name];
+      if (!legacy) continue;
+      const key = recipientKey(recipient), existing = config.delivery[key];
+      if (!existing || Date.parse(legacy.sentAt || legacy.attemptedAt) > Date.parse(existing.sentAt || existing.attemptedAt)) config.delivery[key] = legacy;
+      delete config.delivery[name];
+    }
+    return config;
   }
   function overview() {
     const db = readDb(), config = state(db), now = clock();
@@ -92,19 +101,54 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
           const message = await api(`im/v1/messages?receive_id_type=${recipient.idType}`, { receive_id: recipient.receiveId, msg_type: 'text', content: JSON.stringify({ text }), uuid }, auth);
           const delivery = { day, sentAt: new Date(clock()).toISOString(), count: devices.length, messageId: message.data?.message_id };
           config.delivery[key] = delivery;
-          for (const name of names) config.delivery[name] = delivery;
-          await persist(db);
-          results.push({ name: names[0], names, sent: true });
+          // A storage failure is not a Lark delivery failure. Keep the successful
+          // message ID in memory and continue with other recipients.
+          try {
+            await persist(db);
+            results.push({ name: names[0], names, sent: true });
+          } catch (storageError) {
+            results.push({ name: names[0], names, sent: true, storageError: storageError.message });
+          }
         } catch (error) {
           config.delivery[key] = { ...config.delivery[key], error: error.message, attemptedAt: new Date(clock()).toISOString() };
-          for (const name of names) config.delivery[name] = config.delivery[key];
-          await persist(db);
-          results.push({ name: names[0], names, sent: false, error: error.message });
+          let storageError;
+          try { await persist(db); } catch (err) { storageError = err.message; }
+          results.push({ name: names[0], names, sent: false, error: error.message, ...(storageError ? { storageError } : {}) });
         }
       }
       return { results };
     } finally { running = false; }
   }
-  return { overview, saveRecipient, run, testConnection: async () => { await accessToken(); return { ok: true }; } };
+  async function recover({ people = [], deviceChecks = [] }) {
+    const db = readDb(), config = state(db);
+    const names = new Set(db.devices.map(d => normalizeName(d.userName || d.name)));
+    let restored = 0, checks = 0;
+    for (const person of people) {
+      const name = normalizeName(person.name), recipient = person.recipient;
+      if (!names.has(name) || !recipient || !['user_id','open_id','email'].includes(recipient.idType) || typeof recipient.receiveId !== 'string' || recipient.receiveId.length > 254) continue;
+      const existing = config.recipients[name];
+      if (existing && recipientKey(existing) !== recipientKey(recipient)) continue;
+      config.recipients[name] = { receiveId: recipient.receiveId, idType: recipient.idType, enabled: recipient.enabled === true };
+      const entry = person.delivery, key = recipientKey(recipient);
+      if (!entry?.messageId?.startsWith('om_') || !Number.isFinite(Date.parse(entry.sentAt)) || entry.day !== bangkokDay(Date.parse(entry.sentAt))) continue;
+      if (Date.parse(config.delivery[key]?.sentAt || '') >= Date.parse(entry.sentAt)) continue;
+      config.delivery[key] = { day: entry.day, sentAt: entry.sentAt, count: Number(entry.count) || 0, messageId: entry.messageId };
+      restored++;
+    }
+    for (const check of deviceChecks) {
+      const device = db.devices.find(d => d.id === check.id), incomingTime = Date.parse(check.lastVerifiedAt);
+      if (!device || !Number.isFinite(incomingTime) || incomingTime <= (Date.parse(device.lastVerifiedAt) || 0)) continue;
+      device.lastVerifiedAt = new Date(incomingTime).toISOString();
+      if (check.latitude != null && check.longitude != null && Number.isFinite(Number(check.latitude)) && Math.abs(Number(check.latitude)) <= 90 && Number.isFinite(Number(check.longitude)) && Math.abs(Number(check.longitude)) <= 180) {
+        device.latitude = Number(check.latitude); device.longitude = Number(check.longitude);
+        device.lastLocationTime = check.lastLocationTime || check.lastVerifiedAt;
+        device.address = String(check.address || '');
+      }
+      checks++;
+    }
+    await persist(db);
+    return { restored, checks, people: overview().people.length };
+  }
+  return { overview, saveRecipient, run, recover, testConnection: async () => { await accessToken(); return { ok: true }; } };
 }
 module.exports = { createLarkReminders, due, bangkokDay, normalizeName };

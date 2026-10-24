@@ -63,3 +63,29 @@ test('do not repeatedly retry rejected deliveries within an hour', async()=>{
   await service.run(); await service.run(); assert.equal(attempts,1);
   assert.match(service.overview().people[0].delivery.error,/denied/);
 });
+test('storage failure after successful send does not abort the remaining recipients or resend', async () => {
+  const now=Date.parse('2026-10-24T03:00:00Z'); let fail=false, sends=0;
+  const db={devices:[{id:'a',name:'A'},{id:'b',name:'B'}]};
+  const service=createLarkReminders({readDb:()=>db,persist:async()=>{if(fail)throw Error('JSONBin save error: 403');},clock:()=>now,env:{LARK_APP_ID:'a',LARK_APP_SECRET:'s'},request:async url=>{
+    if(url.includes('tenant_access_token'))return {ok:true,json:async()=>({code:0,tenant_access_token:'t',expire:7200})};
+    sends++;return {ok:true,json:async()=>({code:0,data:{message_id:'m'+sends}})};
+  }});
+  await service.saveRecipient({name:'A',idType:'user_id',receiveId:'a',enabled:true});
+  await service.saveRecipient({name:'B',idType:'user_id',receiveId:'b',enabled:true});
+  fail=true; const result=await service.run();
+  assert.equal(sends,2);assert.equal(result.results.filter(r=>r.sent).length,2);
+  assert(result.results.every(r=>r.storageError));
+  await service.run();assert.equal(sends,2);
+  assert.equal(Object.keys(db.larkReminders.delivery).length,2);
+});
+test('recover successful deliveries and only newer device checks before retrying', async () => {
+  const now=Date.parse('2026-10-24T03:00:00Z');let sends=0;
+  const db={devices:[{id:'a',name:'A',lastVerifiedAt:'2026-10-01T00:00:00Z'}]};
+  const service=createLarkReminders({readDb:()=>db,persist:async()=>{},clock:()=>now,env:{LARK_APP_ID:'a',LARK_APP_SECRET:'s'},request:async()=>{sends++;throw Error('must not send');}});
+  await service.recover({people:[{name:'A',recipient:{receiveId:'a',idType:'user_id',enabled:true},delivery:{day:'2026-10-24',sentAt:'2026-10-24T01:00:00Z',count:1,messageId:'om_saved'}}],deviceChecks:[{id:'a',lastVerifiedAt:'2026-10-24T02:00:00Z'}]});
+  assert.equal(service.overview().people[0].delivery.messageId,'om_saved');
+  assert.equal(db.devices[0].lastVerifiedAt,'2026-10-24T02:00:00.000Z');
+  await service.recover({deviceChecks:[{id:'a',lastVerifiedAt:'2026-10-01T00:00:00Z'}]});
+  await service.run();assert.equal(sends,0);
+  assert.equal(db.devices[0].lastVerifiedAt,'2026-10-24T02:00:00.000Z');
+});

@@ -48,7 +48,8 @@ el('test').onclick = event => busy(event.target, async () => { await call('test'
 el('send').onclick = event => busy(event.target, async () => {
   if (!confirm('ส่งลิงก์ให้บัญชีที่เปิดส่งและมีอุปกรณ์ถึงกำหนดตอนนี้?')) return;
   const result = await call('send');
-  el('message').textContent = result.skipped || `ส่งสำเร็จ ${result.results.filter(r=>r.sent).length} คน\n${result.results.filter(r=>!r.sent).map(r=>`${r.name}: ${r.error}`).join('\n')}`;
+  el('message').textContent = result.skipped || `Lark รับข้อความแล้ว ${result.results.filter(r=>r.sent).length} บัญชี (ยังไม่ใช่การยืนยันว่าเปิดอ่าน)\n${result.results.filter(r=>!r.sent).map(r=>`${r.name}: ${r.error}`).join('\n')}\n${result.results.filter(r=>r.storageError).map(r=>`${r.name}: บันทึกประวัติไม่สำเร็จ ${r.storageError}`).join('\n')}`;
+  people = (await call('status')).people; render();
 });
 el('search').oninput = render;
 el('people').onclick = event => {
