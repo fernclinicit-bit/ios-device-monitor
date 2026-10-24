@@ -321,6 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function openDeviceManagement(status = 'all') {
+    if (searchInput) searchInput.value = '';
     sbDevicesRegistered.click();
     if (statusFilter) {
       statusFilter.value = status;
@@ -331,7 +332,19 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.device-stat-action').forEach(card => {
     card.addEventListener('click', () => openDeviceManagement(card.dataset.status || 'all'));
   });
-  // deviceStatusBars click listener removed to prevent navigating to Monitored Devices
+  if (deviceStatusBars) {
+    deviceStatusBars.addEventListener('click', event => {
+      const row = event.target.closest('.device-status-row');
+      if (row) openDeviceManagement(row.dataset.status || 'all');
+    });
+    deviceStatusBars.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const row = event.target.closest('.device-status-row');
+      if (!row) return;
+      event.preventDefault();
+      openDeviceManagement(row.dataset.status || 'all');
+    });
+  }
   // deviceActionSummary click listener removed
   // btnViewDeviceWork click listener removed to prevent navigating to Monitored Devices
   if (sbAssets) {
@@ -866,7 +879,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ['Overdue', overdue, 'danger']
       ];
       deviceStatusBars.innerHTML = statusRows.map(([label, count, tone]) => `
-        <div class="device-status-row" style="cursor: default;" data-status="${label.toLowerCase()}">
+        <div class="device-status-row" role="button" tabindex="0" style="cursor: pointer;" aria-label="ดูรายการ ${label} จำนวน ${count} รายการ" data-status="${label.toLowerCase()}">
           <span>${label}</span><div><i class="${tone}" style="width:${total ? Math.round((count / total) * 100) : 0}%"></i></div><strong>${count}</strong>
         </div>
       `).join('');
