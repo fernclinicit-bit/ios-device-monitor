@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const https = require('https');
+const { encodeDb, decodeDb } = require('./storage-codec');
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -95,7 +96,7 @@ function fetchFromJsonBin() {
       res.on('end', () => {
         if (res.statusCode === 200) {
           try {
-            resolve(JSON.parse(body));
+            resolve(decodeDb(JSON.parse(body)));
           } catch (e) {
             reject(new Error('Failed to parse JSONBin payload'));
           }
@@ -112,7 +113,7 @@ function fetchFromJsonBin() {
 
 function saveToJsonBin(data) {
   return new Promise((resolve, reject) => {
-    const payload = JSON.stringify(data);
+    const payload = JSON.stringify(encodeDb(data));
     const options = {
       hostname: 'api.jsonbin.io',
       port: 443,
@@ -1086,7 +1087,6 @@ initDb(() => {
     try { await larkReminders.sendSummary(); } catch (error) { console.error('Lark summary:', error.message); }
   }
   setInterval(pollLark, 60000).unref();
-  pollLark();
   server.listen(PORT, () => {
     console.log(`==================================================`);
     console.log(`📱 iOS Device Monitor server is running locally!`);

@@ -89,15 +89,18 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
         if (history.some(entry => entry.day === day)) continue;
         if (history.some(entry => now - Date.parse(entry.attemptedAt) < 3600000)) continue;
         // Read current verification state immediately before sending, not the earlier snapshot.
-        const devices = db.devices.filter(d => {
+        const selectDueDevices = () => readDb().devices.filter(d => {
           const name = normalizeName(d.userName || d.name), current = config.recipients[name];
           return names.includes(name) && current?.enabled && recipientKey(current) === key && due(d, clock());
         });
-        if (!devices.length) continue;
-        const lines = devices.map(d => `${d.deviceNumber || 'ไม่ระบุหมายเลข'}\n${baseUrl}/?id=${encodeURIComponent(d.id)}`);
-        const text = `แจ้งเตือนยืนยันอุปกรณ์: ${names[0]}\nกรุณาเปิดลิงก์ของแต่ละอุปกรณ์และกดยืนยันการใช้งาน\n\n${lines.join('\n\n')}\n\nระบบจะหยุดเตือนรายการที่ยืนยันแล้ว จนถึงรอบถัดไป`;
+        if (!selectDueDevices().length) continue;
         try {
           const auth = await accessToken();
+          // Verification may complete while acquiring the token. Recheck now.
+          const devices = selectDueDevices();
+          if (!devices.length) continue;
+          const lines = devices.map(d => `${d.deviceNumber || 'ไม่ระบุหมายเลข'}\n${baseUrl}/?id=${encodeURIComponent(d.id)}`);
+          const text = `แจ้งเตือนยืนยันอุปกรณ์: ${names[0]}\nกรุณาเปิดลิงก์ของแต่ละอุปกรณ์และกดยืนยันการใช้งาน\n\n${lines.join('\n\n')}\n\nระบบจะหยุดเตือนรายการที่ยืนยันแล้ว จนถึงรอบถัดไป`;
           const uuid = createHash('sha256').update(`${day}:${recipient.idType}:${recipient.receiveId}`).digest('hex').slice(0, 32);
           const message = await api(`im/v1/messages?receive_id_type=${recipient.idType}`, { receive_id: recipient.receiveId, msg_type: 'text', content: JSON.stringify({ text }), uuid }, auth);
           const delivery = { day, sentAt: new Date(clock()).toISOString(), count: devices.length, messageId: message.data?.message_id };
@@ -157,7 +160,7 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
       return { sent: false, error: error.message };
     } finally { summaryRunning = false; }
   }
-  async function recover({ people = [], deviceChecks = [] }) {
+  async function recover({ people = [], deviceChecks = [], logs = [] }) {
     const db = readDb(), config = state(db);
     const names = new Set(db.devices.map(d => normalizeName(d.userName || d.name)));
     let restored = 0, checks = 0;
@@ -183,6 +186,14 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
         device.address = String(check.address || '');
       }
       checks++;
+    }
+    if (logs.length) {
+      const key = log => JSON.stringify([log.timestamp,log.deviceId,log.action,log.deviceName]);
+      const merged = new Map((db.logs || []).map(log => [key(log),log]));
+      for (const log of logs) {
+        if (typeof log.action === 'string' && typeof log.timestamp === 'string' && Number.isFinite(Date.parse(log.timestamp))) merged.set(key(log),log);
+      }
+      db.logs = [...merged.values()].sort((a,b)=>Date.parse(b.timestamp)-Date.parse(a.timestamp));
     }
     await persist(db);
     return { restored, checks, people: overview().people.length };

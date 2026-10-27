@@ -2,6 +2,16 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { createLarkReminders, due } = require('./lark-reminders');
 const DAY = 86400000;
+test('verification completed during token request is excluded from the outgoing reminder', async () => {
+  const now=Date.parse('2026-10-27T03:00:00Z');let sends=0;
+  const db={devices:[{id:'a',name:'A'}]};
+  const service=createLarkReminders({readDb:()=>db,persist:async()=>{},clock:()=>now,env:{LARK_APP_ID:'x',LARK_APP_SECRET:'y'},request:async url=>{
+    if(url.includes('tenant_access_token')){db.devices[0].lastVerifiedAt=new Date(now).toISOString();return {ok:true,json:async()=>({code:0,tenant_access_token:'t',expire:7200})};}
+    sends++;throw Error('Active device must not be sent');
+  }});
+  await service.saveRecipient({name:'A',receiveId:'a',idType:'user_id',enabled:true});
+  await service.run();assert.equal(sends,0);
+});
 test('system report goes only to Amphol once per Bangkok day, separately from reminders', async () => {
   let now=Date.parse('2026-10-24T01:00:00Z');const sent=[];
   const db={devices:[
