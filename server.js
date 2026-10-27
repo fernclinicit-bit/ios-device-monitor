@@ -133,7 +133,9 @@ function saveToJsonBin(data) {
         if (res.statusCode === 200) {
           resolve();
         } else {
-          reject(new Error(`JSONBin save error: ${res.statusCode}`));
+          let reason = '';
+          try { reason = String(JSON.parse(body).message || '').slice(0, 250); } catch (_) {}
+          reject(new Error(`JSONBin save error: ${res.statusCode}${reason ? ': ' + reason : ''}`));
         }
       });
     });
