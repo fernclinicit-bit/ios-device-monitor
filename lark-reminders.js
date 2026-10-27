@@ -160,8 +160,22 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
       return { sent: false, error: error.message };
     } finally { summaryRunning = false; }
   }
-  async function recover({ people = [], deviceChecks = [], logs = [] }) {
+  async function recover({ people = [], deviceChecks = [], logs = [], deviceIds }) {
     const db = readDb(), config = state(db);
+    // Rebuild unsaved assignments only from a matching check + recorded assignment.
+    for (const check of deviceChecks) {
+      if (db.devices.some(d => d.id === check.id)) continue;
+      const log = logs.find(l => l.deviceId === check.id && /^Assigned from IT Dashboard \(.+\)$/.test(l.action || ''));
+      if (!log || !Number.isFinite(Date.parse(check.lastVerifiedAt))) continue;
+      const serial = log.action.match(/^Assigned from IT Dashboard \((.+)\)$/)[1];
+      db.devices.push({ id: check.id, name: log.deviceName, userName: log.deviceName, deviceNumber: serial,
+        registeredAt: check.lastVerifiedAt, lastVerifiedAt: check.lastVerifiedAt, assignmentStatus: 'issued', isIOS: /^(ipad|iphone)-/i.test(serial) });
+    }
+    // A complete pre-deploy snapshot prevents resurrecting records deleted while
+    // cloud writes were rejected. Never prune against an incomplete snapshot.
+    if (Array.isArray(deviceIds) && deviceIds.length && deviceIds.length === new Set(deviceIds).size && deviceChecks.length === deviceIds.length && deviceIds.every(id => deviceChecks.some(c => c.id === id) && db.devices.some(d => d.id === id))) {
+      db.devices = db.devices.filter(d => deviceIds.includes(d.id));
+    }
     const names = new Set(db.devices.map(d => normalizeName(d.userName || d.name)));
     let restored = 0, checks = 0;
     for (const person of people) {
@@ -201,3 +215,4 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
   return { overview, saveRecipient, run, recover, sendSummary, testConnection: async () => { await accessToken(); return { ok: true }; } };
 }
 module.exports = { createLarkReminders, due, bangkokDay, normalizeName };
+
