@@ -1,6 +1,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { createLarkReminders, due } = require('./lark-reminders');
+const { createLarkReminders: createService, due } = require('./lark-reminders');
+// Existing tests isolate timing/delivery; registry rules have their own tests.
+const createLarkReminders = options => createService({ checkSource: async devices => ({ devices: devices.map(d => ({...d})), blocked: [] }), ...options });
 const DAY = 86400000;
 test('verification completed during token request is excluded from the outgoing reminder', async () => {
   const now=Date.parse('2026-10-27T03:00:00Z');let sends=0;

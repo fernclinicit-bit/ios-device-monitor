@@ -9,9 +9,11 @@ body{font:16px system-ui,sans-serif;background:#19110d;color:#f4eee8;margin:0}ma
 <div class="toolbar"><input id="password" type="password" placeholder="รหัสผ่านผู้ดูแล" aria-label="รหัสผ่านผู้ดูแล"><button id="load">โหลดรายชื่อ</button><button id="test">ทดสอบการเชื่อมต่อบอท</button><button id="send">ส่งรายการที่ถึงกำหนดตอนนี้</button><button id="summary">ส่งรายงานให้อำพล</button></div>
 <p>รายงานสรุปทั้งระบบส่งให้อำพล แซ่แฮเท่านั้น วันละครั้งหลัง 09:00 น. เมื่อเซิร์ฟเวอร์ทำงาน แยกจากลิงก์เตือนพนักงาน</p>
 <div class="toolbar"><label>นำเข้ารายชื่อ Lark <input id="contacts-file" type="file" accept=".json,application/json"></label><button id="import-contacts">จับคู่และบันทึกจากไฟล์</button></div>
+<p>ก่อนส่งทุกข้อความ ระบบจะตรวจหมายเลขอุปกรณ์ ผู้ถือครอง และสถานะใช้งานจากทะเบียนต้นทางล่าสุด หากคืนแล้ว ข้อมูลไม่ตรง หรืออ่านต้นทางไม่ได้จะงดส่ง</p>
+<button id="source-check">ตรวจทะเบียนต้นทางก่อนส่ง</button>
 <p>นำเข้าเฉพาะชื่อที่ตรงกันอย่างชัดเจน รายชื่อใหม่จะยังปิดส่งไว้ และไม่เปลี่ยนสถานะเปิดส่งของบัญชีเดิม</p>
 <div id="message" role="status">กรอกรหัสผ่านแล้วโหลดรายชื่อ</div>
 <div class="toolbar"><input id="search" type="search" placeholder="ค้นหารายชื่อ" aria-label="ค้นหารายชื่อ"></div>
 <div class="table"><table><thead><tr><th>ชื่อ / อุปกรณ์รอยืนยัน</th><th>ประเภทบัญชี</th><th>บัญชี Lark</th><th>เปิดส่ง / บันทึก</th><th>การส่งล่าสุด</th></tr></thead><tbody id="people"></tbody></table></div>
 <p>ใช้บัญชี Lark ของพนักงาน ไม่ใช่ชื่อที่แสดงในแชท การทดสอบการเชื่อมต่อจะตรวจ App ID / App Secret โดยไม่ส่งข้อความ</p>
-</main><script src="/lark-contact-matching.js?v=contacts2"></script><script src="/lark-reminders-admin.js?v=summary4"></script></body></html>
+</main><script src="/lark-contact-matching.js?v=contacts2"></script><script src="/lark-reminders-admin.js?v=source5"></script></body></html>

@@ -315,6 +315,7 @@ const server = http.createServer((req, res) => {
         else if (data.action === 'send') result = await larkReminders.run({ scheduled: false });
         else if (data.action === 'status') result = larkReminders.overview();
         else if (data.action === 'summary') result = await larkReminders.sendSummary({ scheduled: false });
+        else if (data.action === 'source-check') result = await larkReminders.previewSource();
         else if (data.action === 'recover') result = await larkReminders.recover(data);
         else throw new Error('Unknown action');
         res.writeHead(200, { 'Content-Type': 'application/json' });

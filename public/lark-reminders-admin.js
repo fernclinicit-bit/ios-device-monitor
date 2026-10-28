@@ -1,6 +1,10 @@
 const el = id => document.getElementById(id);
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 let people = [];
+el('source-check').onclick = event => busy(event.target, async () => {
+  const result = await call('source-check');
+  el('message').textContent = `ต้นทาง ${result.sourceCount} รายการ • ตรงกัน ${result.matched} รายการ • งดส่ง ${result.blocked.length} รายการ\n${result.blocked.map(row=>`${row.deviceNumber || '-'} — ${row.name}: ${row.reason}`).join('\n')}\nการตรวจนี้ยังไม่ได้ส่งข้อความ`;
+});
 el('summary').onclick = event => busy(event.target, async () => {
   if (!confirm('ส่งรายงานสรุปทั้งระบบให้อำพล แซ่แฮคนเดียว? (วันละครั้ง)')) return;
   const result = await call('summary');

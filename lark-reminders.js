@@ -1,4 +1,5 @@
 const { createHash } = require('node:crypto');
+const { createRegistryCheck, normalizeSerial, normalizeOwner } = require('./registry-check');
 const DAY = 86400000;
 const normalizeName = value => String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ');
 function due(device, now) {
@@ -9,7 +10,19 @@ function due(device, now) {
 function bangkokDay(now) { return new Date(now + 7 * 3600000).toISOString().slice(0, 10); }
 const recipientKey = recipient => `recipient:${recipient.idType}:${recipient.receiveId}`;
 
-function createLarkReminders({ readDb, persist, env = process.env, request = fetch, clock = Date.now }) {
+function createLarkReminders({ readDb, persist, env = process.env, request = fetch, clock = Date.now, checkSource }) {
+  const registryCheck = checkSource || createRegistryCheck({ env, request, clock });
+  let sourceCheck = null;
+  async function checkedSource(devices) {
+    try {
+      const result = await registryCheck(devices);
+      sourceCheck = { checkedAt: new Date(clock()).toISOString(), matched: result.devices.length, blocked: result.blocked, sourceCount: result.sourceCount, ok: true };
+      return result;
+    } catch (error) {
+      sourceCheck = { checkedAt: new Date(clock()).toISOString(), ok: false, error: error.message };
+      throw error;
+    }
+  }
   let token = '', tokenUntil = 0, running = false, summaryRunning = false;
   const baseUrl = (env.PUBLIC_BASE_URL || 'https://ios-device-monitor-46w9.onrender.com').replace(/\/$/, '');
   async function api(path, body, auth) {
@@ -51,6 +64,7 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
     }
     return { configured: !!(env.LARK_APP_ID && env.LARK_APP_SECRET), schedule: '09:00 Asia/Bangkok ทุกวัน เริ่มก่อนกำหนด 3 วัน',
       summaryDelivery: config.summaryDelivery || null,
+      sourceCheck,
       people: [...groups].map(([name, devices]) => ({ name, recipient: config.recipients[name] || null,
         dueCount: devices.filter(d => due(d, now)).length, total: devices.length,
         delivery: (config.recipients[name] && config.delivery[recipientKey(config.recipients[name])]) || config.delivery[name] || null })) };
@@ -96,8 +110,10 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
         if (!selectDueDevices().length) continue;
         try {
           const auth = await accessToken();
-          // Verification may complete while acquiring the token. Recheck now.
-          const devices = selectDueDevices();
+          // Always fetch authoritative current inventory before each message.
+          const checked = await checkedSource(selectDueDevices());
+          const devices = selectDueDevices().filter(d => checked.devices.some(v => v.id === d.id && normalizeSerial(v.deviceNumber) === normalizeSerial(d.deviceNumber) && normalizeOwner(v.userName || v.name) === normalizeOwner(d.userName || d.name)));
+          if (checked.blocked.length) results.push({ name: names[0], sent: false, skipped: true, error: 'งดรายการที่ไม่ตรงต้นทาง', blocked: checked.blocked });
           if (!devices.length) continue;
           const lines = devices.map(d => `${d.deviceNumber || 'ไม่ระบุหมายเลข'}\n${baseUrl}/?id=${encodeURIComponent(d.id)}`);
           const text = `แจ้งเตือนยืนยันอุปกรณ์: ${names[0]}\nกรุณาเปิดลิงก์ของแต่ละอุปกรณ์และกดยืนยันการใช้งาน\n\n${lines.join('\n\n')}\n\nระบบจะหยุดเตือนรายการที่ยืนยันแล้ว จนถึงรอบถัดไป`;
@@ -118,6 +134,7 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
           let storageError;
           try { await persist(db); } catch (err) { storageError = err.message; }
           results.push({ name: names[0], names, sent: false, error: error.message, ...(storageError ? { storageError } : {}) });
+          if (error.code === 'SOURCE_UNAVAILABLE') break;
         }
       }
       return { results };
@@ -132,6 +149,8 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
     if (now - Date.parse(config.summaryDelivery?.attemptedAt) < 3600000) return { skipped: 'รอลองส่งรายงานใหม่หลังข้อผิดพลาด 1 ชั่วโมง' };
     summaryRunning = true;
     try {
+      const checked = await checkedSource(db.devices);
+      if (checked.blocked.length) throw new Error(`งดรายงานสรุป: มี ${checked.blocked.length} รายการไม่ตรงทะเบียนต้นทาง กรุณาตรวจสอบก่อน`);
       const counts = { active: 0, pending: 0, unverified: 0, overdue: 0 }, followUp = new Map();
       for (const device of db.devices) {
         const age = now - Date.parse(device.lastVerifiedAt);
@@ -212,7 +231,8 @@ function createLarkReminders({ readDb, persist, env = process.env, request = fet
     await persist(db);
     return { restored, checks, people: overview().people.length };
   }
-  return { overview, saveRecipient, run, recover, sendSummary, testConnection: async () => { await accessToken(); return { ok: true }; } };
+  return { overview, saveRecipient, run, recover, sendSummary,
+    previewSource: async () => { await checkedSource(readDb().devices); return sourceCheck; },
+    testConnection: async () => { await accessToken(); return { ok: true }; } };
 }
 module.exports = { createLarkReminders, due, bangkokDay, normalizeName };
-
