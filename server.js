@@ -3,11 +3,13 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const https = require('https');
+const { loadSecurityConfig } = require('./security-config');
+const { createHealthReport } = require('./health-contract');
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DB_FILE = path.join(__dirname, 'data', 'db.json');
-const ACTION_PASSWORD = '664749';
+const ACTION_PASSWORD = loadSecurityConfig().actionPassword;
 const DASHBOARD_SYNC_TOKEN = process.env.IOS_DASHBOARD_SYNC_TOKEN || '';
 
 function requireActionPassword(data, res) {
@@ -303,6 +305,21 @@ const server = http.createServer((req, res) => {
   }
 
   // --- API Routes ---
+
+  if (req.method === 'GET' && pathname === '/api/health') {
+    const storageConfigured = Boolean((JSONBIN_API_KEY && JSONBIN_BIN_ID) || DB_FILE);
+    const report = createHealthReport({
+      service: 'ios-device-monitor',
+      version: '1.0.0',
+      checks: {
+        storage: { status: storageConfigured ? 'ok' : 'error', mode: JSONBIN_API_KEY && JSONBIN_BIN_ID ? 'cloud' : 'local' },
+        actionSecurity: { status: ACTION_PASSWORD ? 'ok' : 'error' },
+      },
+    });
+    res.writeHead(report.status === 'ok' ? 200 : 503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify(report));
+    return;
+  }
 
   // POST /api/integration/device-assignment
   // Server-to-server synchronization from IT Monthly Dashboard.
