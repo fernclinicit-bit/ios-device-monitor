@@ -10,14 +10,7 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const DB_FILE = path.join(__dirname, 'data', 'db.json');
 const ACTION_PASSWORD = '664749';
 const DASHBOARD_SYNC_TOKEN = process.env.IOS_DASHBOARD_SYNC_TOKEN || '';
-const { createLarkReminders } = require('./lark-reminders');
-const larkReminders = createLarkReminders({ readDb, persist: async db => {
-  if (JSONBIN_API_KEY && JSONBIN_BIN_ID) await saveToJsonBin(db);
-  else {
-    fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-  }
-} });
+// Lark integration cancelled: no client, polling, contact sync, or outbound messages.
 
 function requireActionPassword(data, res) {
   if (!data || data.password !== ACTION_PASSWORD) {
@@ -302,29 +295,14 @@ const server = http.createServer((req, res) => {
   const qPos = req.url.indexOf('?');
   const pathname = qPos !== -1 ? req.url.substring(0, qPos) : req.url;
 
-  if (req.method === 'POST' && pathname === '/api/lark-reminders') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; if (body.length > 150000) req.destroy(); });
-    req.on('end', async () => {
-      try {
-        const data = JSON.parse(body);
-        if (!requireActionPassword(data, res)) return;
-        let result;
-        if (data.action === 'save') { await larkReminders.saveRecipient(data); result = larkReminders.overview(); }
-        else if (data.action === 'test') result = await larkReminders.testConnection();
-        else if (data.action === 'send') result = await larkReminders.run({ scheduled: false });
-        else if (data.action === 'status') result = larkReminders.overview();
-        else if (data.action === 'summary') result = await larkReminders.sendSummary({ scheduled: false });
-        else if (data.action === 'source-check') result = await larkReminders.previewSource();
-        else if (data.action === 'recover') result = await larkReminders.recover(data);
-        else throw new Error('Unknown action');
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(result));
-      } catch (error) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: error.message }));
-      }
-    });
+  if (pathname === '/api/lark-reminders') {
+    res.writeHead(410, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ enabled: false, error: 'ยกเลิกการเชื่อมต่อและการแจ้งเตือนผ่าน Lark แล้ว' }));
+    return;
+  }
+  if (pathname === '/lark-reminders.html') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end('<!doctype html><html lang="th"><meta charset="utf-8"><title>Lark ปิดใช้งานแล้ว</title><body><h1>ยกเลิกระบบ Lark แล้ว</h1><p>ปิดการซิงค์รายชื่อ การแจ้งเตือน และรายงานผ่าน Lark แล้ว</p><a href="/">กลับหน้าหลัก</a></body></html>');
     return;
   }
 
@@ -1085,11 +1063,6 @@ const server = http.createServer((req, res) => {
 });
 
 initDb(() => {
-  async function pollLark() {
-    try { await larkReminders.run(); } catch (error) { console.error('Lark reminder:', error.message); }
-    try { await larkReminders.sendSummary(); } catch (error) { console.error('Lark summary:', error.message); }
-  }
-  setInterval(pollLark, 60000).unref();
   server.listen(PORT, () => {
     console.log(`==================================================`);
     console.log(`📱 iOS Device Monitor server is running locally!`);
